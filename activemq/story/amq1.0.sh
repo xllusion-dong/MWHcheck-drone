@@ -1,5 +1,5 @@
 #!/bin/bash
-#version:3.0
+#version:1.0
 #monitor:activemq/os
 #update: 根据需求，将整体脚本做了切割，以独立产品做数据采集
 #update: 增加activemq安全基线检查

@@ -1,5 +1,5 @@
 #!/bin/bash
-#version:7.0
+#version:1.0
 #monitor:weblogic/os
 #update: 根据需求，将整体脚本做了切割，以独立产品做数据采集
 #update-date:2022-06-01
