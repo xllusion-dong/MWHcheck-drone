@@ -320,9 +320,18 @@ function rocketmq_inquiry_info() {
         rocketmqversion=$(ls -lt $rocketmqBase/lib| grep rocketmq-broker | awk '{print $NF}' | awk -F '-' '{print $3}')
         echo "\"rocketmqversion\"":"\"$rocketmqversion\""","
 
-        rocketmqconfigfile=$(ps -ef|grep $line |grep -v grep| grep  org.apache.rocketmq.broker.BrokerStartup  | awk -F '-c' '{print $NF}' | awk '{print $1}')
-        rocketmqconfigfile01=$(echo $rocketmqconfigfile  | awk -F '/' '{print $NF}')
-        rocketmqconfigfilepath=$(find $rocketmqBase -name $rocketmqconfigfile01 -type f -print | grep $rocketmqconfigfile)
+        
+        #获取当前rocketmq的配置文件，对服务进程进行判断是否存在-c参数
+        ppid=$(ps -ef|grep $line |grep -v grep | awk '{print $3}')
+        cparameter=$(ps -ef|grep $ppid |grep runbroker.sh | grep -io '\-c')
+        if [ x$cparameter = x ];then
+            rocketmqconfigfilepath=$rocketmqBase/conf/broker.conf
+        else
+            rocketmqconfigfile=$(ps -ef|grep $line |grep -v grep| grep  org.apache.rocketmq.broker.BrokerStartup  | awk -F '-c' '{print $NF}' | awk '{print $1}')
+            rocketmqconfigfile01=$(echo $rocketmqconfigfile  | awk -F '/' '{print $NF}')
+            rocketmqconfigfilepath=$(find $rocketmqBase -name $rocketmqconfigfile01 -type f -print | grep $rocketmqconfigfile)
+        fi 
+      
 
         echo "获取当前rocketmq的配置文件为：$rocketmqconfigfilepath" >"$filepath""$filename2" 
         cat $rocketmqconfigfilepath >> "$filepath""$filename2"
@@ -525,7 +534,7 @@ filename1=$HOSTNAME"_"rocketmq"_"os_""$ipinfo"_"$qctime".txt"
 filename2=$HOSTNAME"_"rocketmq"_"$ipinfo"_"$qctime".txt"
 
 if [ $rocketmq_pid_member -eq 0 ]; then
-    if [ x$rocketmq_namesvr_member -eq 0 ]; then
+    if [ $rocketmq_namesvr_member -eq 0 ]; then
         echo "没有rocketmq服务进程"
         exit 0
     else 
