@@ -210,43 +210,6 @@ function rocketmq_status_info(){
     echo -e "$rocketmqclusterinfo" >> "$filepath""$filename2"
     echo  -e "\"rocketmqclusterinfo\"":"\"$rocketmqclusterinfo\""","
 
-    echo "" >>  "$filepath""$filename2"
-    #查看当前broker的配置信息
-    echo "当前broker的配置信息" >>  "$filepath""$filename2"
-    rocketmqbrokerconfig=$($rocketmqbase/bin/mqadmin getBrokerConfig -n $namesrvAddr -b $brokeraddress )
-    echo -e "$rocketmqbrokerconfig" >> "$filepath""$filename2"
-    echo "" >>  "$filepath""$filename2"
-    #查看当前broker的状态信息
-    echo "查看当前broker的状态信息" >>  "$filepath""$filename2"
-    echo "" >>  "$filepath""$filename2"
-    rocketmqbrokerstatus=$($rocketmqbase/bin/mqadmin brokerStatus -n $namesrvAddr -b $brokeraddress )
-    echo -e "$rocketmqbrokerstatus" >>  "$filepath""$filename2"
-    echo "" >>  "$filepath""$filename2"
-    echo -e "\"rocketmqbrokerstatus\"":"\"$rocketmqbrokerstatus\""","
-    echo "查看当前broker中所有的消费者组"  >> "$filepath""$filename2"
-    rocketmqconsumergroup=$($rocketmqbase/bin/mqadmin consumerProgress -n $namesrvAddr)
-    echo -e "$rocketmqconsumergroup" >>  "$filepath""$filename2"
-    echo -e "\"rocketmqconsumergroup\"":"\"$rocketmqconsumergroup\""","
-    echo "" >>  "$filepath""$filename2"
-
-    rocketmqconsumergroupInfo=$($rocketmqbase/bin/mqadmin consumerProgress -n $namesrvAddr | grep -v '#Group' |awk '{print $1}')
-    for consumergroup in $rocketmqconsumergroupInfo;do
-        echo "查看指定消费组下的所有topic数据堆积情况" >> "$filepath""$filename2"
-        consumergroupinfo=$($rocketmqbase/bin/mqadmin consumerProgress -n $namesrvAddr -g $consumergroup )
-        echo -e "$consumergroupinfo" >>  "$filepath""$filename2"
-        #echo -e "\"rocketmqconsumergroup\"":"\"$rocketmqconsumergroup\""","
-        echo "" >>  "$filepath""$filename2"
-    done
-
-
-
-    echo "查看broker中各个消费者的消费情况，消息是否有积压" >> "$filepath""$filename2"
-    #判断 diff不为0，./mqadmin brokerConsumeStats -n 192.168.3.138:9876 -b 192.168.3.64:10911 | awk 'n==1{print} $0~/#Topic/{n=1}' | awk '(NR>=1) {if($7>0) print}'
-    rocketmqconsumerinfo=$($rocketmqbase/bin/mqadmin brokerConsumeStats -n $namesrvAddr -b $brokeraddress)
-    echo -e "$rocketmqconsumerinfo" >>  "$filepath""$filename2"
-    echo -e "\"rocketmqconsumerinfo\"":"\"$rocketmqconsumerinfo\""","
-    echo "" >>  "$filepath""$filename2"
-
     echo "查看当前broker中存在的主题" >> "$filepath""$filename2"
     rocketmqtopic=$($rocketmqbase/bin/mqadmin topicList -n $namesrvAddr -c)
     echo -e "$rocketmqtopic" >>  "$filepath""$filename2"
@@ -258,6 +221,68 @@ function rocketmq_status_info(){
     rocketmqtopic24info=$($rocketmqbase/bin/mqadmin statsAll -n $namesrvAddr)
     echo -e "$rocketmqtopic24info" >>  "$filepath""$filename2"
     echo -e "\"rocketmqtopic24info\"":"\"$rocketmqtopic24info\""","
+
+    echo "查看当前broker中所有的消费者组"  >> "$filepath""$filename2"
+    rocketmqconsumergroup=$($rocketmqbase/bin/mqadmin consumerProgress -n $namesrvAddr)
+    echo -e "$rocketmqconsumergroup" >>  "$filepath""$filename2"
+    echo -e "\"rocketmqconsumergroup\"":"\"$rocketmqconsumergroup\""","
+    echo "" >>  "$filepath""$filename2"
+
+   
+
+    ### 是否需要使用for循环把所以的broker信息获取到？？？ 下午来调整
+    #判断 diff不为0，./mqadmin brokerConsumeStats -n 192.168.3.138:9876 -b 192.168.3.64:10911 | awk 'n==1{print} $0~/#Topic/{n=1}' | awk '(NR>=1) {if($7>0) print}'
+    #rocketmqconsumerinfo=$($rocketmqbase/bin/mqadmin brokerConsumeStats -n $namesrvAddr -b $brokeraddress)
+    #echo -e "$rocketmqconsumerinfo" >>  "$filepath""$filename2"
+    #echo -e "\"rocketmqconsumerinfo\"":"\"$rocketmqconsumerinfo\""","
+    #echo "" >>  "$filepath""$filename2"
+
+    ### 使用for循环将所有的broker节点信息读取出来
+    #判断 diff不为0，./mqadmin brokerConsumeStats -n 192.168.3.138:9876 -b 192.168.3.64:10911 | awk 'n==1{print} $0~/#Topic/{n=1}' | awk '(NR>=1) {if($7>0) print}'
+    clusterinfo=$(echo "$rocketmqclusterinfo" | awk 'NR>1' | awk '{print $4}')
+    for brokeraddress in $clusterinfo
+    do
+        rocketmqconsumerinfo=$($rocketmqbase/bin/mqadmin brokerConsumeStats -n $namesrvAddr -b $brokeraddress)
+        rocketmqconsumerinfosum+=$rocketmqconsumerinfo
+        rocketmqbrokerconfig=$($rocketmqbase/bin/mqadmin getBrokerConfig -n $namesrvAddr -b $brokeraddress )
+        rocketmqbrokerconfigsum+=$rocketmqbrokerconfig
+        #rocketmqbrokerstatus=$($rocketmqbase/bin/mqadmin brokerStatus -n $namesrvAddr -b $brokeraddress )
+        #rocketmqbrokerstatussum+=$rocketmqbrokerstatus
+
+    done
+    echo "查看broker中各个消费者的消费情况，消息是否有积压" >> "$filepath""$filename2"
+    echo -e "$rocketmqconsumerinfosum" >>  "$filepath""$filename2"
+    echo -e "\"rocketmqconsumerinfo\"":"\"$rocketmqconsumerinfosum\""","
+    echo "" >>  "$filepath""$filename2" 
+
+
+    echo "" >>  "$filepath""$filename2"
+    #查看当前broker的配置信息
+    echo "当前broker的配置信息" >>  "$filepath""$filename2"
+    #rocketmqbrokerconfig=$($rocketmqbase/bin/mqadmin getBrokerConfig -n $namesrvAddr -b $brokeraddress )
+    echo -e "$rocketmqbrokerconfigsum" >> "$filepath""$filename2"
+    echo "" >>  "$filepath""$filename2"
+    #查看当前broker的状态信息
+    echo "查看当前broker的状态信息" >>  "$filepath""$filename2"
+    echo "" >>  "$filepath""$filename2"
+    rocketmqbrokerstatus=$($rocketmqbase/bin/mqadmin brokerStatus -n $namesrvAddr -b $brokeraddress )
+    echo -e "$rocketmqbrokerstatus" >>  "$filepath""$filename2"
+    echo "" >>  "$filepath""$filename2"
+    echo -e "\"rocketmqbrokerstatus\"":"\"$rocketmqbrokerstatus\""","
+
+
+
+
+    #rocketmqconsumergroupInfo=$($rocketmqbase/bin/mqadmin consumerProgress -n $namesrvAddr | grep -v '#Group' |awk '{print $1}')
+    #for consumergroup in $rocketmqconsumergroupInfo;do
+    #    echo "查看指定消费组下的所有topic数据堆积情况 $consumergroup" >> "$filepath""$filename2"
+    #    consumergroupinfo=$($rocketmqbase/bin/mqadmin consumerProgress -n $namesrvAddr -g $consumergroup )
+    #    echo -e "$consumergroupinfo" >>  "$filepath""$filename2"
+    #    #echo -e "\"rocketmqconsumergroup\"":"\"$rocketmqconsumergroup\""","
+    #    echo "" >>  "$filepath""$filename2"
+    #done
+
+
     echo "" >>  "$filepath""$filename2"
 
 }
@@ -468,7 +493,7 @@ function get_rocketmq_jsondata() {
 }
 
 function mwcheckr_result_jsondata() {
-    new_document=$new_data/rocketmq_$ipinfo.txt
+    new_document=$new_data/rocketmq_$ipinfo.json
     echo "{" >$new_document
     echo \"osinfo\": \{ >>$new_document
     get_os_jsondata
