@@ -566,7 +566,7 @@ if [ $redis_pid_member == 0 ]; then
     exit 0
 else
     #获取redis.conf文件和passwd
-    confs=$(grep -rwl 'databases 16' | grep -l "daemonize yes" $(find / -name '*.conf' 2>/dev/null) | grep -v sentinel)
+    confs=$(grep -rwl "daemonize yes" $(find / -name '*.conf' 2>/dev/null) | grep -v sentinel)
     excredis=$(find / -name "redis-cli" | awk 'NR==1')
     if [ ${#confs} -ne 0 ]; then
         for conf in $confs; do
@@ -597,8 +597,12 @@ else
                 redispingreturn=$(echo -e "auth ${passwd}\nping"|$excredis -h $ipinfo -p $port)
                 if [ x$(echo $redispingreturn | awk '{print $NF}')=x'PONG' ];
                 then
-                    redis_inquiry_info_passwd >>"$redisfile"
-                    check_node_master
+                    configpath=$(echo -e ""auth ${passwd}\ninfo Server" | $excredis -h $ipinfo -p $port  |grep config_file| awk -F ':' '{print $NF}'| tr -d '\r')
+                    if [ x$configpath = x$conf ];
+                    then
+                        redis_inquiry_info_passwd >>"$redisfile"
+                        check_node_master
+                    fi
                 fi
                 
             fi
