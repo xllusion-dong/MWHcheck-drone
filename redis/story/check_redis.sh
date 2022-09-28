@@ -577,11 +577,12 @@ else
             #通过conf文件查找到的port         
 
             port=$(grep -v ^# $conf | grep port | awk '{print $NF}')
+
             #当前Redis服务启动用户"
             start_User=$(ps aux | grep $port | grep -v grep | grep -v sentinel | awk 'NR==1{print $1}')
             filename2=$HOSTNAME"_"redis"_"$port"_"$ipinfo"_"$qctime".txt"
             redisfile="$filepath""$filename2"
-            if [ x$passwd=x'' ];
+            if [ -z "$passwd" ]; ### 对passwd进行判断，如果为空，说明当前没有配置密码，如果不为空，说明当前设置了密码
             then    
                 redispingreturn=$(echo -e "ping"|$excredis -h $ipinfo -p $port) ##return pong
                 if [ x$(echo $redispingreturn | awk '{print $NF}')=x'PONG' ];
@@ -597,7 +598,7 @@ else
                 redispingreturn=$(echo -e "auth ${passwd}\nping"|$excredis -h $ipinfo -p $port)
                 if [ x$(echo $redispingreturn | awk '{print $NF}')=x'PONG' ];
                 then
-                    configpath=$(echo -e ""auth ${passwd}\ninfo Server" | $excredis -h $ipinfo -p $port  |grep config_file| awk -F ':' '{print $NF}'| tr -d '\r')
+                    configpath=$(echo -e "auth ${passwd}\ninfo Server" | $excredis -h $ipinfo -p $port  |grep config_file| awk -F ':' '{print $NF}'| tr -d '\r')
                     if [ x$configpath = x$conf ];
                     then
                         redis_inquiry_info_passwd >>"$redisfile"
