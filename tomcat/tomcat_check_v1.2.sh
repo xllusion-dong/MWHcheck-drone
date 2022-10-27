@@ -1,5 +1,6 @@
 #!/bin/bash
 #version:v1.2
+# 20221024 delete json file log data
 
 function collect_sys_info() {
 
