@@ -1,7 +1,8 @@
 #!/bin/bash
-#version:v1.2
+#version:v1.3
 #update time 2022-11-01
-#tomcat巡检数据直接生成json，报告实现一个进程一个表格
+#tomcat巡检数据直接生成json文件
+#巡检报告实现每个进程生成单独的表格
 
 function collect_sys_info() {
 
