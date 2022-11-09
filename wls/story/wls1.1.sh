@@ -442,27 +442,28 @@ function weblogic_info() {
             echo "\"runUserResult\"":"\"Pass\""
         fi
 
-        echo "查看stuck日志" >> "$filepath""$filename2"
-        awk '/'Stuck'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log  >> "$filepath""$filename2"
-        echo ""  >> "$filepath""$filename2"
+        #echo "查看stuck日志" >> "$filepath""$filename2"
+        #awk '/'Stuck'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log  >> "$filepath""$filename2"
+        #echo ""  >> "$filepath""$filename2"
 
-        echo "查看连接池中是否达到最大值" >> "$filepath""$filename2"
-        awk '/'Reached\ maximum\ capacity\ of\ pool'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log
-        echo ""  >> "$filepath""$filename2"
+        #echo "查看连接池中是否达到最大值" >> "$filepath""$filename2"
+        #awk '/'Reached\ maximum\ capacity\ of\ pool'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log
+        #echo ""  >> "$filepath""$filename2"
         
-        echo "查看是否存在sql异常信息"  >>  "$filepath""$filename2"
-        awk '/'java.sql.SQLException'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log >> "$filepath""$filename2"
-        echo ""  >> "$filepath""$filename2"
+        #echo "查看是否存在sql异常信息"  >>  "$filepath""$filename2"
+        #awk '/'java.sql.SQLException'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log >> "$filepath""$filename2"
+        #echo ""  >> "$filepath""$filename2"
         
-        echo "查看是否存在连接泄露日志" >>  "$filepath""$filename2"
-        awk '/'Forcibly\ releasinginactive\ connection'/,/ExecuteThread.java/' $domain_dir/servers/${server_name}/logs/${server_name}.log >>  "$filepath""$filename2"
-        echo ""  >> "$filepath""$filename2"
+        #echo "查看是否存在连接泄露日志" >>  "$filepath""$filename2"
+        #awk '/'Forcibly\ releasinginactive\ connection'/,/ExecuteThread.java/' $domain_dir/servers/${server_name}/logs/${server_name}.log >>  "$filepath""$filename2"
+        #echo ""  >> "$filepath""$filename2"
 
-        echo "查看所有的错误日志" >> "$filepath""$filename2"
-        awk '/'Error'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log >> "$filepath""$filename2"
-        echo ""  >> "$filepath""$filename2"
+        #echo "查看所有的错误日志" >> "$filepath""$filename2"
+        #awk '/'Error'/,/ExecuteThread.java/'  $domain_dir/servers/${server_name}/logs/${server_name}.log >> "$filepath""$filename2"
+        #echo ""  >> "$filepath""$filename2"
 
-        #cp $domain_dir/servers/${server_name}/logs/${server_name}.log /tmp/enmoResult/tmpcheck/${domain_name}_${server_name}_${OPID} 
+        cp $domain_dir/servers/${server_name}/logs/${server_name}.log /tmp/enmoResult/tmpcheck/${domain_name}_${server_name}_${OPID} 
+         
         
         init=$(expr $init + 1)
         echo "}"
