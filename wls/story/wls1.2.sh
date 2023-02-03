@@ -211,33 +211,34 @@ function weblogic_info() {
         echo "{"
 
         echo "\"domain_dir\"":"\"$domain_dir\""","
-        weblogic_dir=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.home=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+        weblogic_dir=$(ps -feww | grep -w $OPID | grep -v grep | grep -io "weblogic.home=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
         echo "\"weblogic_dir\"":"\"$weblogic_dir\""","
 
         domain_name=${domain_dir##*/}
         echo "\"domain_name\"":"\"$domain_name\""","
 
-        server_name=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.Name=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+        server_name=$(ps -feww | grep -w $OPID | grep -v grep | grep -io "weblogic.Name=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
         echo "\"server_name\"":"\"$server_name\""","
 
         #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | head -n 1 | awk '{print $4}' | awk -F ':' '{print $NF}')
 
 
-        server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | awk '{print $4}' | awk -F ':' '{print $NF}')
-        for s_port in $server_port;
-        do
-            grep -r $s_port $domain_dir/config > /dev/null
-            if [ $? -eq 0 ]; then
-                sport=$s_port
-            else
-                sport=7001
-            fi		
-        done
+        #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | awk '{print $4}' | awk -F ':' '{print $NF}')
+        server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+        # for s_port in $server_port;
+        # do
+        #     grep -r $s_port $domain_dir/config > /dev/null
+        #     if [ $? -eq 0 ]; then
+        #         sport=$s_port
+        #     else
+        #         sport=7001
+        #     fi		
+        # done
 
 
         #server_port=`netstat -natp|grep $OPID`
         #echo "server port is  $server_port"
-        echo "\"server_port\"":"\"$sport\""","
+        echo "\"server_port\"":"\"$server_port\""","
 
         server_jvm_Xms=$(ps -feww | grep $OPID | grep -v grep | grep -io "\-Xms.*" | awk '{print $1}')
         server_jvm_Xmx=$(ps -feww | grep $OPID | grep -v grep | grep -io "\-Xmx.*" | awk '{print $1}')
