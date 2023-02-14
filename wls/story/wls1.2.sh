@@ -3,6 +3,8 @@
 #monitor:weblogic/os
 #update: 根据需求，将整体脚本做了切割，以独立产品做数据采集
 #update-date:2022-06-01
+#update-date: 2023-02-09,修复bug：grep: -P supports only unibyte and UTF-8 locales 
+#update-date: 2023-02-09,修复bug：受管服务器上执行时，ipinfo地址获取为adminserver上的地址
 
 #----------------------------------------OS层数据采集------------------------------------------------
 function collect_sys_info() {
@@ -376,7 +378,7 @@ function weblogic_info() {
             app_start_num=$(grep -n '<app-deployment>' $domain_dir/config/config.xml | head -n 1 | awk -F ':' '{print $1}' | cut -d ' ' -f 4)
             app_end_num=$(grep -n '</app-deployment>' $domain_dir/config/config.xml | tail -n 1 | awk -F ':' '{print $1}' | cut -d ' ' -f 4)
 
-            appinfo=$(sed -n ' '$app_start_num','$app_end_num' 'p' ' $domain_dir/config/config.xml | grep -oP '(?<=name>)[^<]+')
+            appinfo=$(sed -n ' '$app_start_num','$app_end_num' 'p' ' $domain_dir/config/config.xml | LC_ALL=en_US.utf8 grep -oP '(?<=name>)[^<]+')
 
             #appinfo=`sed -n  ' '$app_start_num','$app_end_num' 'p' ' config.xml | grep 'name' | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d' `
             appinfo=$(echo $appinfo | sed 's/[ ][ ]*/,/g')
@@ -433,9 +435,9 @@ function weblogic_info() {
             wlstexec=$(find $weblogicdir -name wlst.sh | head -n 1)
             descryptusername=$($wlstexec /tmp/enmoResult/pyscript/passdecrypt.py  $domain_dir  $username| tail -n 1)
             descryptpassword=$($wlstexec /tmp/enmoResult/pyscript/passdecrypt.py  $domain_dir  $password| tail -n 1)
-            ipinfo=$(echo $adminUrl| awk -F ':' '{print $2}' | tr -d '\//')
+            adminipinfo=$(echo $adminUrl| awk -F ':' '{print $2}' | tr -d '\//')
             serverport=$(echo $adminUrl | awk -F ':' '{print $3}')
-            wlsmoninfo=$($wlstexec /tmp/enmoResult/pyscript/wlsdatacheck.py $ipinfo $serverport  $descryptusername $descryptpassword | egrep -i "^-|^ " )
+            wlsmoninfo=$($wlstexec /tmp/enmoResult/pyscript/wlsdatacheck.py $adminipinfo $serverport  $descryptusername $descryptpassword | egrep -i "^-|^ " )
             echo "\"wlsmoninfo\"":"\"$wlsmoninfo\""
         fi
 
