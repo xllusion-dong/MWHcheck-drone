@@ -5,6 +5,7 @@
 #update-date:2022-06-01
 #update-date: 2023-02-09,修复bug：grep: -P supports only unibyte and UTF-8 locales 
 #update-date: 2023-02-09,修复bug：受管服务器上执行时，ipinfo地址获取为adminserver上的地址
+#update-date: 2023-02-14,修复bug，获取监听端口异常
 
 #----------------------------------------OS层数据采集------------------------------------------------
 function collect_sys_info() {
@@ -226,7 +227,7 @@ function weblogic_info() {
 
 
         #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | awk '{print $4}' | awk -F ':' '{print $NF}')
-        server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+        server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
         # for s_port in $server_port;
         # do
         #     grep -r $s_port $domain_dir/config > /dev/null
