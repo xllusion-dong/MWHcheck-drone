@@ -6,6 +6,7 @@
 #update-date: 2023-02-09,修复bug：grep: -P supports only unibyte and UTF-8 locales 
 #update-date: 2023-02-09,修复bug：受管服务器上执行时，ipinfo地址获取为adminserver上的地址
 #update-date: 2023-02-14,修复bug，获取监听端口异常
+#update-data: 2023-02-28,修复bug，weblogic补丁版本获取
 
 #----------------------------------------OS层数据采集------------------------------------------------
 function collect_sys_info() {
@@ -224,10 +225,18 @@ function weblogic_info() {
         echo "\"server_name\"":"\"$server_name\""","
 
         #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | head -n 1 | awk '{print $4}' | awk -F ':' '{print $NF}')
-
+        
+        #获取管理端口配置
+        adminportport=$(grep 'administration-port' $domain_dir/config/config.xml | grep -v administration-port-enabled | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d')
+        adminportport=$(echo $adminportport | sed 's/[ ][ ]*/|/g')
+        if [ -z "$adminportport" ];then
+            server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+        else
+            server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN | grep -vE $adminportport |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+        fi
 
         #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | awk '{print $4}' | awk -F ':' '{print $NF}')
-        server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+       
         # for s_port in $server_port;
         # do
         #     grep -r $s_port $domain_dir/config > /dev/null
@@ -279,10 +288,128 @@ function weblogic_info() {
         fi
 
 
-        source $domain_dir/bin/setDomainEnv.sh
-        domain_version=$($java_bin weblogic.version | head -n 2 | tail -n 1)
+        #source $domain_dir/bin/setDomainEnv.sh
+        #domain_version=$($java_bin weblogic.version | head -n 2 | tail -n 1)
         #domain_version=`grep 'domain-version' $domain_dir/config/config.xml | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d'`
-        echo "\"domain_version\"":"\"$domain_version\""","
+        #weblogic12.1.3版本以上weblogic获取当前补丁命令
+        #./opatch lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g'
+        #weblogic12.1.3版本一下weblogic获取当前补丁命令
+        #./bsu.sh -view -status=applied -prod_dir=/home/weblogic/wls1036/wlserver_10.3 -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1'
+        wlsversion=`grep 'domain-version' $domain_dir/config/config.xml | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d'`
+        
+        case $wlsversion in
+        "12.2.1.4.0")
+                OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi
+                ;;
+        "12.2.1.3.0")
+                OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi 
+                ;;
+        "12.2.1.2.0")
+                OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi
+                ;;
+        "12.2.1.1.0")
+                OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi 
+                ;;
+        "12.2.1.0.0")
+                OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi 
+                ;;
+        "12.1.3.0.0")
+                OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi
+                ;;
+        "12.1.2.0")
+                BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
+                cd $BSUCOMMANDDIR
+                weblogicdir=${weblogic_dir%/*}
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi                
+                ;;
+        "12.1.1.0")
+                BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
+                cd $BSUCOMMANDDIR
+                weblogicdir=${weblogic_dir%/*}
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi               
+                ;;
+        "10.3.6.0")
+                BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
+                cd $BSUCOMMANDDIR
+                weblogicdir=${weblogic_dir%/*}
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi
+                ;;
+        "10.3.5.0")
+                BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
+                cd $BSUCOMMANDDIR
+                weblogicdir=${weblogic_dir%/*}
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
+                if [ -z "$weblogicpatchinfo" ];then
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                else    
+                    wlsversion=$weblogicpatchinfo
+                    echo "\"domain_version\"":"\"$wlsversion\""","
+                fi
+                ;;
+        *)
+               echo "\"domain_version\"":"error"","
+        esac
+
 
         mkdir -p /tmp/enmoResult/tmpcheck/${domain_name}_${server_name}_${OPID}
         cp $domain_dir/config/config.xml /tmp/enmoResult/tmpcheck/${domain_name}_${server_name}_${OPID}
