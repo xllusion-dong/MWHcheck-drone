@@ -1,0 +1,119 @@
+Redis巡检脚本说明：巡检脚本版本为2.0，脚本名称为“zh_redis2.0.sh”本次具体变更：redis-cli由最初的全盘find检索修改为手动输入；
+
+
+
+脚本在执行前需要注意如下两点：
+
+	1、在我们执行脚本前首先要明确我们巡检使用的用户，若为redis服务启动用户则**无需调整redis安装目录权限**，若执行用户未**非redis服务启动用户**则需要在脚本执行前，修改redis安装目录的权限为755
+
+	2、根据提示选着需检查的redis服务，登入时是否需要密码，若redis未配置密码则选着类型"1"即在提示页输入”1“并回车，若redis服务设置了安全认证即密码登入，则选着类型”2“并回车
+	
+	3、为了更好的获取当前服务器limit.conf文件内容且普通用户无修改权限建议将其权限改为411
+	
+具体执行步骤
+
+	巡检无安全认证的redis服务
+
+		1、执行<font color='green'>sh zh_redis2.0.sh</font>
+
+		2、输入<font color='green'> 1</font>，并回车
+
+		3、输入<font color='green'>redis-cli</font>命令路径，并回车，
+
+		4、等待执行完成，并确认/tmp/enmoResult/redis/checkjson目录下的文件是否生成完整数据
+
+		正常执行控制台输出
+	
+		[test@elk-master ~]$ sh zh_redis2.0.sh                        #开始执行巡检脚本
+		/tmp/enmoResult/tmpcheck is not empty!!!
+		clean /tmp/enmoResult/tmpcheck !!!
+		/tmp/enmoResult/redis/security is not empty!!!
+		clean /tmp/enmoResult/redis/security !!!
+		The redis process is running on the server,Start Check!
+		###########################################
+		    Redis config Password choose:
+		        1(not config password)
+		        2(config password)
+		###########################################
+		Please input your check middleware type:1                    #选着类型为“1”即当前redis服务未设置密码认证登入
+		###########################################
+		example: /usr/local/redis/bin/redis-cli
+		Please input your redis-cli path:/home/redis/bin/redis-cli   #redis-cli所在路径
+		###############Get Redis Process Info##################
+		___________________
+		Redis Service Ports:6379
+		Redis Client Path  :/home/redis/bin/redis-cli
+		Start checking the Redis service!!!
+		/tmp/enmoResult/redis/checkjson/ is not empty!!!
+		clean /tmp/enmoResult/redis/checkjson/ !!!
+		Patrol data packaging process !!!
+		/tmp/enmoResult/
+		/tmp/enmoResult/tmpcheck/
+		/tmp/enmoResult/tmpcheck/elk-master_os_192.168.115.130_20230310155035.txt
+		/tmp/enmoResult/tmpcheck/elk-master_redis_6379_192.168.115.130_20230310155035.txt
+		/tmp/enmoResult/redis/
+		/tmp/enmoResult/redis/security/
+		/tmp/enmoResult/redis/security/security_baseline.txt
+		/tmp/enmoResult/redis/checkjson/
+		/tmp/enmoResult/redis/checkjson/redis_192.168.115.130.json
+		tar: /tmp/enmoResult: 在我们读入文件时文件发生了变化
+		Patrol data for successful collection !!!
+		___________________
+		Collection info Finished.
+		Result File Path: /tmp/enmoResult/tmpcheck/
+
+	
+	
+	
+	巡检带有安全认证的redis服务
+
+		1、执行<font color='green'>sh zh_redis2.0.sh</font>
+
+		2、输入 <font color='green'>2</font>，并回车
+
+		3、输入<font color='green'>redis-cli</font>命令路径，并回车
+
+		4、输入redis服务登入密码，若不知道密码请到redis.conf文件中查找，requirepass配置
+			如：requirepass 123456
+		5、等待执行完成，并确认/tmp/enmoResult/redis/checkjson目录下的文件是否生成完整数据
+
+		正常执行控制台输出
+		[test@elk-master ~]$ sh zh_redis2.0.sh                       #开始执行巡检脚本
+		/tmp/enmoResult/tmpcheck is not empty!!!
+		clean /tmp/enmoResult/tmpcheck !!!
+		/tmp/enmoResult/redis/security is not empty!!!
+		clean /tmp/enmoResult/redis/security !!!
+		The redis process is running on the server,Start Check!
+		###########################################
+	  	  Redis config Password choose:
+	    	    1(not config password)
+	      	  2(config password)
+		###########################################
+		Please input your check middleware type:2                   #选着类型为“2”即redis服务设置密码认证登入，此次输入登入密码
+		###########################################
+		example: /usr/local/redis/bin/redis-cli
+		Please input your redis-cli path:/home/redis/bin/redis-cli  #输入redis-cli命令所在位置 
+		Please enter the redis password manually !!!
+		Please input your redis Passwd: ******                      #redis服务登入所需密码
+		###############Get Redis Process Info##################
+		___________________
+		Redis Service Ports:6379
+		Redis Client Path  :/home/redis/bin/redis-cli
+		Start checking the Redis service!!!
+		/tmp/enmoResult/redis/checkjson/ is not empty!!!
+		clean /tmp/enmoResult/redis/checkjson/ !!!
+		Patrol data packaging process !!!
+		/tmp/enmoResult/
+		/tmp/enmoResult/tmpcheck/
+		/tmp/enmoResult/tmpcheck/elk-master_os_192.168.115.130_20230310154715.txt
+		/tmp/enmoResult/tmpcheck/elk-master_redis_6379_192.168.115.130_20230310154715.txt
+		/tmp/enmoResult/redis/
+		/tmp/enmoResult/redis/security/
+		/tmp/enmoResult/redis/security/security_baseline.txt
+		/tmp/enmoResult/redis/checkjson/
+		/tmp/enmoResult/redis/checkjson/redis_192.168.115.130.json
+		tar: /tmp/enmoResult: 在我们读入文件时文件发生了变化
+		Patrol data for successful collection !!!
+		___________________
+		Collection info Finished.
+		Result File Path: /tmp/enmoResult/tmpcheck/
