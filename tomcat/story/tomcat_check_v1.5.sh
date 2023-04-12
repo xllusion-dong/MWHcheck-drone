@@ -1,5 +1,5 @@
 #!/bin/bash
-#version:v1.2
+#version:v1.5
 #update time 2023/4/7
 #modify same securitycheck
 
@@ -188,7 +188,6 @@ function convert_unit() {
     fi
 }
 
-#----------------------------------------Tomcat info------------------------------------------------
 # 检查服务器是否存在Tomcat进程
 echo "############################################################"
 tomcat_pid_member=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"|awk '{ print $2}'|wc -l`
