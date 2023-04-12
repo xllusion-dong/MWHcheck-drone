@@ -451,13 +451,13 @@ function get_tomcat_jsondata(){
         if [[ -n $list_check ]];then
             echo "\"list_check\"":"\"$list_check\""","
             if [[ $list_check = "false" ]];then
-                echo "\"list_check_con\"":"\"Pass\""","
+                echo "\"list_check_con\"":"\"Pass\""
             else
-                echo "\"list_check_con\"":"\"Failed\""","
+                echo "\"list_check_con\"":"\"Failed\""
             fi
         else
             echo "\"list_check\"":"\"false\""","
-            echo "\"list_check_con\"":"\"Pass\""","
+            echo "\"list_check_con\"":"\"Pass\""
         fi
 
         # 删除临时生成文件
