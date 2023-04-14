@@ -205,26 +205,26 @@ else
     if [ "$user_count" -gt "1" ];then
         if [ "$(whoami)" != "root" ];then
             echo "############################################################"
-            echo "The Apache process is started as: "$run_user
-			echo "Please run this script with root user or sudo mode!"
+            echo "The Apache process startup user is: "$run_user
+            echo "Please run this script with root user or sudo mode!"
             exit 0
-	    fi
+        fi
     else
         if [ "$run_user" == "root"  ];then
-		    if [[ "$(whoami)" != "root" ]];then
+            if [[ "$(whoami)" != "root" ]];then
                 echo "############################################################"
-                echo "The Apache process is started as: "$run_user
+                echo "The Apache process startup user is: "$run_user
                 echo "Please run this script with root user or sudo mode!"
                 exit 0
-            fi				
+            fi                
         else
-		    if [[ "$(whoami)" != "root" && "$(whoami)" != "$run_user" ]];then
+            if [[ "$(whoami)" != "root" && "$(whoami)" != "$run_user" ]];then
                 echo "############################################################"
-                echo "The Apache process is started as: "$run_user
+                echo "The Apache process startup user is: "$run_user
                 echo "Please run this script with $run_user user!"
                 echo "You can also use root user or sudo mode if you have permission."
                 exit 0
-	        fi
+            fi
         fi
     fi
 
