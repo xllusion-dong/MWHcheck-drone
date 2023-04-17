@@ -1,6 +1,6 @@
 #!/bin/bash
-#version:2.0
-#updatetime20230417
+#version:1.2
+#updatetime2023/04/17
 #each process data use alone table
 
 function collect_sys_info() {
