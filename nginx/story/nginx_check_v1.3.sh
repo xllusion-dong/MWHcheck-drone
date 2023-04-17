@@ -242,13 +242,13 @@ function nginx_inquiry_info(){
         nginx_pre=`$nginx_sbin -V 2>&1|grep "prefix="|awk -F "prefix=" '{print $2}'|awk '{print $1}'`
         nginx_d=${nginx_pre%*/}
         nginx_c=`ps -ef|grep $NPID|grep master|grep -v grep|awk -F "-c" '{print $2}'|tr -d " "`
-        if [[ $nginx_c =~ ^/.* ]];then
-            nginx_c="$nginx_c"
+        if [ -n "$nginx_c" ];then
+		    if [[ $nginx_c =~ ^/.* ]];then
+                nginx_c="$nginx_c"
+            else
+                nginx_c="$nginx_d/$nginx_c"
+            fi
         else
-            nginx_c="$nginx_d/$nginx_c"
-        fi
-       
-        if [ ! -n "$nginx_c" ];then
             nginx_c="$nginx_d/conf/nginx.conf"
         fi
 
@@ -265,7 +265,7 @@ function nginx_inquiry_info(){
                     cat $include|grep -vE '^#|^\s*#|^$' >> $nginx_temp 2>/dev/null
                 else
                     echo "######$nginx_d/conf/$include Info:" >> $nginx_temp
-                    cat $nginx_d"/conf/"$include|grep -vE '^#|^\s*#|^$' >> $nginx_temp 2>/dev/null
+                    cat "$nginx_d/conf/$include"|grep -vE '^#|^\s*#|^$' >> $nginx_temp 2>/dev/null
                 fi
             fi
         done
@@ -288,7 +288,7 @@ function nginx_inquiry_info(){
         # 截取nginx近期错误日志
         echo "############Get Process $NPID Nginx Log Info#############"
         if [ -e "$error_log" ];then
-            cat $error_log|tail -n 500
+            cat $error_log|tail -n 1000
         else
             echo "No Error_Log File!"
         fi
@@ -354,13 +354,13 @@ function get_nginx_jsondata(){
 
         #获取nginx配置文件目录
         nginx_confile=`ps -ef|grep $NPID|grep master|grep -v grep|awk -F "-c" '{print $2}'|tr -d " "`
-        if [[ $nginx_confile =~ ^/.* ]];then
-            nginx_conf="$nginx_confile"
+        if [ -n "$nginx_confile" ];then
+		    if [[ $nginx_confile =~ ^/.* ]];then
+                nginx_conf="$nginx_confile"
+            else
+                nginx_conf="$nginx_home/$nginx_confile"
+            fi
         else
-            nginx_conf="$nginx_home/$nginx_confile"
-        fi
-
-        if [ ! -n "$nginx_conf" ];then
             nginx_conf="$nginx_home/conf/nginx.conf"
         fi
         echo "\"config_dir\"":"\"$nginx_conf\""","
@@ -379,7 +379,7 @@ function get_nginx_jsondata(){
         nginx_tp=/tmp/enmoResult/tmpcheck/nginx_tp.xml
         cat $nginx_conf|grep -vE '^#|^\s*#|^$' >> $nginx_tp 2>/dev/null
         include_confs=`cat $nginx_conf|grep -vE '^#|^\s*#|^$'|grep "include "|sed 's/;/ /g'`
-        for include in "$include_confs"
+        for include in $include_confs
         do
             if echo "$include"|grep -q -E '\.conf$'; then
                 if [[ $include =~ ^/.* ]];then
@@ -387,7 +387,7 @@ function get_nginx_jsondata(){
                     cat $include|grep -vE '^#|^\s*#|^$' >> $nginx_tp 2>/dev/null
                 else
                     echo "######$nginx_home/conf/$include Info:" >> $nginx_tp
-                    cat $nginx_home"/conf/"$include|grep -vE '^#|^\s*#|^$' >> $nginx_tp 2>/dev/null
+                    cat "$nginx_home/conf/$include"|grep -vE '^#|^\s*#|^$' >> $nginx_tp 2>/dev/null
                 fi
             fi
         done

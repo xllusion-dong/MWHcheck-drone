@@ -1,6 +1,6 @@
 #!/bin/bash
-#version:v1.2
-#time20230414
+#version:2.0
+#updatetime20230417
 #each process data use alone table
 
 function collect_sys_info() {
@@ -192,20 +192,21 @@ function convert_unit()
     fi
 }
 
-# 检查服务器是否存在Apache进程
-apache_pid_member=`ps -ef|grep httpd|grep -v grep|grep -v '.sh'|awk '$3==1{print $2}'|wc -l`
+
+# 检查服务器是否存在Keepalived进程
+keepalived_pid_member=`ps -ef|grep keepalived|grep -v grep|grep -v '.sh'|awk '$3==1{print $2}'|wc -l`
 echo "############################################################"
-if [ "$apache_pid_member" == 0 ];then
-    echo "There is no Apache process on the server!"
+if [ "$keepalived_pid_member" == 0 ];then
+    echo "There is no Keepalived process on the server!"
     exit 0
 else
-    echo "The Apache process is running on the server,Start Check!"
-    user_count=`ps -ef|grep httpd|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'|uniq|wc -l`
-    run_user=`ps -ef|grep httpd|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'|uniq`
+    echo "The Keepalived process is running on the server,Start Check!"
+    user_count=`ps -ef|grep keepalived|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'|uniq|wc -l`
+    run_user=`ps -ef|grep keepalived|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'|uniq`
     if [ "$user_count" -gt "1" ];then
         if [ "$(whoami)" != "root" ];then
             echo "############################################################"
-            echo "The Apache process startup user is: "$run_user
+            echo "The Keepalived process startup user is: "$run_user
             echo "Please run this script with root user or sudo mode!"
             exit 0
         fi
@@ -213,70 +214,35 @@ else
         if [ "$run_user" == "root"  ];then
             if [[ "$(whoami)" != "root" ]];then
                 echo "############################################################"
-                echo "The Apache process startup user is: "$run_user
+                echo "The Keepalived process startup user is: "$run_user
                 echo "Please run this script with root user or sudo mode!"
                 exit 0
             fi                
         else
             if [[ "$(whoami)" != "root" && "$(whoami)" != "$run_user" ]];then
                 echo "############################################################"
-                echo "The Apache process startup user is: "$run_user
+                echo "The Keepalived process startup user is: "$run_user
                 echo "Please run this script with $run_user user!"
                 echo "You can also use root user or sudo mode if you have permission."
                 exit 0
             fi
         fi
     fi
-
 fi
 
-function apache_inquiry_info(){
+function keepalived_inquiry_info(){
 
-    echo "###############Get Apache Process Info##################" 
-    ps -ef|grep httpd|grep -v grep|grep -v '.sh'
+    echo "###############Get keepalived Process Info##################" 
+    ps -ef |grep keepalived|grep -v grep|grep -v '.sh'
 
-    apids=`ps -ef|grep httpd|grep -v grep|grep -v '.sh'|awk '$3==1{print $2}'`
-
-    for pid in $apids
-    do
-
-        apache_bin=`ls -l /proc/$pid/exe|awk '{print $(NF)}'`
-        
-        apache_home=`$apache_bin -V|grep "HTTPD_ROOT"|awk -F '=' '{print $2}'|tr -d '"'`
-        apache_config=`$apache_bin -V |grep "SERVER_CONFIG_FILE"|awk -F '=' '{print $2}'| tr -d '"'`
-        apache_log=`$apache_bin -V |grep "DEFAULT_ERRORLOG"| awk -F '=' '{print $2}'| tr -d '"'`
-
-        #将apache所有配置内容输出到apache_temp.xml文件
-        echo "######$apache_home/$apache_config Info:" > /tmp/enmoResult/tmpcheck/apache_temp.xml
-        apache_temp=/tmp/enmoResult/tmpcheck/apache_temp.xml
-        cat "$apache_home/$apache_config"|grep -vE '^#|^\s*#|^$' >> $apache_temp  2>/dev/null
-        includes=`cat "$apache_home/$apache_config"|grep -v '#'|grep -i "include "`
-        for include in $includes
-        do
-            if echo "$include"|grep -q -E '\.conf$'; then
-                if [[ $include =~ ^/.* ]];then
-                    echo "######$include Info:" >> $apache_temp
-                    cat $include|grep -vE '^#|^\s*#|^$' >> $apache_temp 2>/dev/null
-                else
-                    echo "######$apache_home/$include Info:" >> $apache_temp
-                    cat $apache_home/$include|grep -vE '^#|^\s*#|^$' >> $apache_temp 2>/dev/null
-                fi
-            fi
-        done
-        
-        # 获取apache配置内容
-        echo "###########Get Process $pid Apache Config Info###########"
-        cat $apache_temp
-
-        # 删除临时文件
-        rm -f $apache_temp
-
-        # 获取apache日志内容
-        echo "############Get Process $pid Apache Log Info#############"
-        cat "$apache_home/$apache_log"|tail -n 1000
-
-    done
-
+    system_log="/var/log/messages"
+    echo "###############Get Keepalived Log Info######################"
+    if [ -f "$system_log" ];then
+        cat /var/log/messages |grep keepalived|tail -n 1000
+    else
+        cat /var/log/syslog |grep keepalived|tail -n 1000
+    fi
+    
 }
 
 # get os json data
@@ -313,151 +279,53 @@ function get_os_jsondata(){
 
 }
 
-function get_apache_jsondata(){
+function get_keepalived_jsondata(){
 
     init=0
-    #获取apache pids
-    hpids=`ps -ef|grep httpd|grep -v grep|grep -v '.sh'|awk '$3==1{print $2}'`
+    ka_pids=`ps -ef|grep keepalived|grep -v grep|grep -v '.sh'|awk '$3==1{print $2}'`
 
-    for hpid in $hpids; do
+    for kapid in $ka_pids; do
 
         echo "{"
 
-        #获取apache bin目录
-        httpd_bin=`ls -l /proc/$hpid/exe|awk '{print $(NF)}'`
-
-        #获取apache编译信息
-        httpd_cinfo=`$httpd_bin -V|sed 's/\"//g'|sed 's/\\\//g'`
-        echo "\"httpd_cinfo\"":"\"$httpd_cinfo\""","
-
-        #获取apache安装目录
-        httpd_home=`$httpd_bin -V|grep "HTTPD_ROOT"|awk -F '=' '{print $2}'|tr -d '"'`
-        echo "\"httpd_home\"":"\"$httpd_home\""","
-
-        #获取apache启动用户
-        httpd_user=`ps -ef|grep $hpid|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'`
-        echo "\"httpd_user\"":"\"$httpd_user\""","
-
-        #获取apache版本信息
-        httpd_version=`$httpd_bin -V|grep "Server version:"|awk -F "/" '{print $2}'|awk -F " " '{print $1}'`
-        echo "\"httpd_version\"":"\"$httpd_version\""","
-
-        #获取apache工作模式
-        worker_mode=`$httpd_bin -V|grep "Server MPM:"|awk '{print $NF}'`
-        echo "\"worker_mode\"":"\"$worker_mode\""","
-
-        #获取apache配置文件目录
-        httpd_confile=`ps -ef|grep $hpid|grep -v grep|grep -v '.sh'|awk '$3==1'|awk -F "-f" '{print $2}'|awk '{print $1}'`
-        if [ -n "$httpd_confile" ];then
-		    if [[ $httpd_confile =~ ^/.* ]];then
-                httpd_conf="$httpd_confile"
-            else
-                httpd_conf="$httpd_home/$httpd_confile"
-            fi
-        else
-            httpd_config=`$httpd_bin -V|grep "SERVER_CONFIG_FILE"|awk -F '=' '{print $2}'| tr -d '"'`
-            httpd_conf="$httpd_home/$httpd_config"
-        fi
-        echo "\"httpd_conf\"":"\"$httpd_conf\""","
-
-        httpd_errorlog=`$httpd_bin -V|grep "DEFAULT_ERRORLOG"| awk -F '=' '{print $2}'| tr -d '"'`
-   
-        httpd_num=`ps -ef|grep "$hpid"|grep -v grep|grep -v '.sh'|wc -l`
-        echo "\"httpd_num\"":"\"$httpd_num\""","
-
-        #将httpd所有配置内容输出到httpd_tp.xml文件
-        echo "######$httpd_conf Info:" > /tmp/enmoResult/tmpcheck/httpd_tp.xml
-        httpd_tp=/tmp/enmoResult/tmpcheck/httpd_tp.xml
-        cat "$httpd_conf"|grep -vE '^#|^\s*#|^$' >> $httpd_tp
-        httpd_includes=`cat $httpd_conf|grep -v '#'|grep -i "include "`
-        for include in $httpd_includes
-        do
-            if echo "$include"|grep -q -E '\.conf$'; then
-                if [[ $include =~ ^/.* ]];then
-                    echo "######$include Info:" >> $httpd_tp
-                    cat "$include"|grep -vE '^#|^\s*#|^$' >> $httpd_tp 2>/dev/null
-                else
-                    echo "######$httpd_home/$include Info:" >> $httpd_tp
-                    cat "$httpd_home/$include"|grep -vE '^#|^\s*#|^$' >> $httpd_tp 2>/dev/null
-                fi
-            fi
-        done
-
-        # 获取httpd监听端口
-        httpd_listen=`cat $httpd_tp|grep -i "Listen "`
-        a=":"
-        if [[ "$httpd_listen" =~ "$a" ]];then
-            httpd_port=`echo $httpd_listen|awk -F ":" '{print $NF}'`
-        else
-            httpd_port="$httpd_listen"
-        fi
-        echo "\"httpd_port\"":"\"$httpd_port\""","
-
-        # 安全基线检查
-        # 版本检查
-        echo "\"version_check\"":"\"$httpd_version\""","
-
-        # 进程启动用户检查
-        echo "\"runuser_check\"":"\"$httpd_user\""","
-        if [[ $httpd_user = "root" ]];then
-            echo "\"runuser_check_con\"":"\"Failed\""","
-        else
-            echo "\"runuser_check_con\"":"\"Pass\""","
-        fi
-
-        # 版本隐藏配置
-        server_token=`cat "$httpd_tp"|grep -i "ServerTokens"`
-        if [ -n "$server_token" ];then
-            echo "\"token_check\"":"\"$server_token\""","
-            typeset -l token_value
-            token_value=`echo $server_token|awk '{print $NF}'`
-            if [ "$token_value" = "prod" ];then
-                echo "\"token_check_con\"":"\"Pass\""","
-            else
-                echo "\"token_check_con\"":"\"Failed\""","
-            fi
-        else
-            echo "\"token_check\"":"\"NullConfig\""","
-            echo "\"token_check_con\"":"\"Failed\""","
-        fi
-
-        # 禁止目录浏览
-        indexes=`cat "$httpd_tp"|grep -v IndexOptions|grep Options`
-        indexes_1=`cat $httpd_tp|grep -v IndexOptions|grep Options|grep " Indexes"`
-        indexes_2=`cat $httpd_tp|grep -v IndexOptions|grep Options|grep "+Indexes"`
-        if [ -n "$indexes" ];then
-            echo "\"dir_check\"":"\"$indexes\""","
-            if [[ -n $indexes_1 || -n $indexes_2 ]];then
-                echo "\"dir_check_con\"":"\"Failed\""","
-            else
-                echo "\"dir_check_con\"":"\"Pass\""","
-            fi
-        else
-            echo "\"dir_check\"":"\"NullConfig\""","
-            echo "\"dir_check_con\"":"\"Failed\""","
-        fi
-
-
-        # 自定义错误页面检查
-        error_page=`cat $httpd_tp|grep "ErrorDocument "`
-        if [ -n "$error_page" ];then
-            echo "\"errorpage_check\"":"\"$error_page\""","
-            echo "\"errorpage_check_con\"":"\"Pass\""","
-        else
-            echo "\"errorpage_check\"":"\"NullConfig\""","
-            echo "\"errorpage_check_con\"":"\"Failed\""","
-        fi
+        ka_bin=`ls -l /proc/$kapid/exe|awk '{print $(NF)}'`
+        ka_info=`$ka_bin -v 2>&1`
+        echo "\"ka_info\"":"\"$ka_info\""","
         
-        # 获取httpd配置内容
-        httpd_confinfo=`cat "$httpd_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'|sed 's/\\\//g'`
-        echo "\"httpd_confinfo\"":"\"$httpd_confinfo\""
+		ka_user=`ps -ef|grep $kapid|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'`
+        echo "\"ka_user\"":"\"$ka_user\""","
+		
+		ka_home=`echo $ka_bin|awk -F "/sbin" '{print $1}'`
+        echo "\"ka_home\"":"\"$ka_home\""","
 
-        # 删除缓存文件
-        rm -f $httpd_tp
+		ka_version=`$ka_bin -v 2>&1|head -n 1|awk '{print $2}'`
+        echo "\"ka_version\"":"\"$ka_version\""","
+		
+		ka_num=`ps -ef|grep $kapid|grep -v grep|grep -v '.sh'|wc -l`
+        echo "\"ka_num\"":"\"$ka_num\""","
+
+        #获取keepalived配置文件目录
+        ka_confile=`ps -ef|grep $kapid|grep -v grep|grep -v '.sh'|awk '$3==1'|awk -F "-f" '{print $2}'|tr -d ' '`
+        if [ -n "$ka_confile" ];then
+		    if [[ $ka_confile =~ ^/.* ]];then
+                ka_conf="$ka_confile"
+            elif [[ $ka_confile =~ ^..* ]];then
+                ka_conf="$ka_bin/$ka_confile"
+            else
+                ka_conf="$ka_home/$ka_confile"
+            fi
+        else
+            ka_conf="/etc/keepalived/keepalived.conf"
+        fi
+
+        echo "\"ka_conf\"":"\"$ka_conf\""","
+
+        ka_config=`cat $ka_conf|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'|sed 's/\\\//g'`
+        echo "\"ka_config\"":"\"$ka_config\""
 
         let init+=1
         echo "}"
-        if [ "$init" -lt "$apache_pid_member" ];then
+        if [ "$init" -lt "$keepalived_pid_member" ];then
             echo ","
         fi
 
@@ -467,21 +335,21 @@ function get_apache_jsondata(){
 
 function get_jsondata(){
 
-    new_document=$new_data/apache_$ipinfo.json
+    new_document=$new_data/keepalived_$ipinfo.json
     echo "{" > $new_document
     
     echo "\"os_info\": {" >> $new_document
     get_os_jsondata
     echo "}," >>$new_document
     
-    echo "\"httpd_info\": [" >> $new_document
-    get_apache_jsondata >> $new_document
+    echo "\"keepalived_info\": [" >> $new_document
+    get_keepalived_jsondata >> $new_document
     echo "]" >> $new_document
     
     echo "}" >> $new_document
 }
 
-function get_apache_main() {
+function get_keepalived_main() {
 
 ####check /tmp/tmpcheck Is empty
 if [ "$(ls -A $filepath)" ];then  
@@ -502,33 +370,34 @@ else
 fi
 
 ####get system info
-filename1=$HOSTNAME"_"apache"_"os_""$ipinfo"_"$qctime".txt"
+filename1=$HOSTNAME"_"keepalived"_"os_""$ipinfo"_"$qctime".txt"
 collect_sys_info >> "$filepath""$filename1"
 
-####get apache info
-filename2=$HOSTNAME"_"apache"_"$ipinfo"_"$qctime".txt"
-apache_inquiry_info >> "$filepath""$filename2"
+####get keepalived info
+filename2=$HOSTNAME"_"keepalived"_"$ipinfo"_"$qctime".txt"
+keepalived_inquiry_info >> "$filepath""$filename2"
+
+tar -zcf /tmp/enmoResult/"$HOSTNAME"_"keepalived"_"$ipinfo"_"$qctime".tar.gz --exclude=/tmp/enmoResult/*.tar.gz /tmp/enmoResult/* --format=ustar
 
 ###get json data
 get_jsondata
-
-tar -zcf /tmp/enmoResult/"$HOSTNAME"_"apache"_"$ipinfo"_"$qctime".tar.gz --exclude=/tmp/enmoResult/*.tar.gz /tmp/enmoResult/* --format=ustar
 
 echo -e "___________________"
 echo -e "Collection info Finished."
 echo -e "Result File Path:" $filepath
 echo -e "\n"
 }
-    
+
+#----------------------------------------END------------------------------------------------
 ######################Main##########################
 filepath="/tmp/enmoResult/tmpcheck/"
 excmkdir=$(which mkdir | awk 'NR==1{print}'  )
 $excmkdir -p $filepath
-new_data="/tmp/enmoResult/apache"
+new_data="/tmp/enmoResult/keepalived"
 $excmkdir -p $new_data
 qctime=$(date +'%Y%m%d%H%M%S')
 ipinfo=`ip addr show |grep 'state UP' -A 2| grep "inet " |grep -v 127.0.0. |head -1|cut -d" " -f6|cut -d/ -f1`
 
 echo "############################################################"
-echo "Start performing apache patrols！！！"
-get_apache_main
+echo "Start performing Keepalived patrols！！！"
+get_keepalived_main
