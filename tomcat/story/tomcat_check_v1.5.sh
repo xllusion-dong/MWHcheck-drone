@@ -1,8 +1,7 @@
 #!/bin/bash
-#version:v1.3
-#update time 2022-11-01
-#直接生成json数据文件
-#巡检报告实现每个进程生成单独的表格
+#version:v1.5
+#update time 2023/4/7
+#modify same securitycheck
 
 function collect_sys_info() {
 
@@ -115,10 +114,10 @@ function collect_sys_info() {
     iostat=$(which iostat)
     iostat_status=$(echo $?)
     if [ $iostat_status -eq 0 ]; then
-        IO_User=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' '{print $1}')
-        IO_System=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' '{print $4}')
-        IO_Wait=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' '{print $4}')
-        IO_Idle=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' '{print $NF}')
+        IO_User=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' 'NR==1{print $1}')
+        IO_System=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' 'NR==1{print $4}')
+        IO_Wait=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' 'NR==1{print $4}')
+        IO_Idle=$(iostat -x -k 2 1 | grep -1 avg | grep -v avg | grep -v ^$ | awk -F ' ' 'NR==1{print $NF}')
         echo "IO_User:$IO_User%"
         echo "IO_System:$IO_System%"
         echo "IO_Wait:$IO_Wait%"
@@ -160,8 +159,8 @@ function collect_sys_info() {
     #keepalive探测包的发送间隔
 
     echo "--------------原始数据采集_补充--------------"
-    echo "----->>>---->>>  CPU usage"
-    sar 2 5
+    #echo "----->>>---->>>  CPU usage"
+    #sar 2 5
     echo ""
     echo "----->>>---->>>  resource limit"
     cat /etc/security/limits.conf | grep -v '^#' | grep -v '^$'
@@ -189,10 +188,9 @@ function convert_unit() {
     fi
 }
 
-#----------------------------------------Tomcat info------------------------------------------------
 # 检查服务器是否存在Tomcat进程
 echo "############################################################"
-tomcat_pid_member=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap start"|awk '{ print $2}'|wc -l`
+tomcat_pid_member=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"|awk '{ print $2}'|wc -l`
 if [ ${tomcat_pid_member} == 0 ];then
     echo "There is no Tomcat process on the server!"
     exit 0
@@ -202,9 +200,9 @@ fi
 
 function tomcat_info(){
     # Get Tomcat PID Info
-    PID=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap start"|awk '{ print $2}'`
+    PID=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"|awk '{ print $2}'`
     echo "###############Get All Tomcat Process Info##################" 
-    ps -ef |grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap start"
+    ps -ef |grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"
     for OPID in $PID; do
         echo "##########Get Process $OPID Tomcat Install Info#########" 
         tomcat_path=`ps -ef|grep $OPID|grep 'org.apache.catalina.startup.Bootstrap'|grep -v grep|awk -F '-Dcatalina.home=' '{print $2}'|awk '{print $1}'`
@@ -215,9 +213,6 @@ function tomcat_info(){
 
         echo "#############View Process $OPID Tomcat ResourceUsage###########"
         top -bn1 -p $OPID
-
-        echo "#############View Process $OPID Tomcat Use Ports###############" 
-        netstat -nutlp|grep $OPID
 
         echo "#########View Process $OPID Tomcat catalina.sh Info#########"
         cat $tomcat_path/bin/catalina.sh
@@ -249,7 +244,7 @@ function tomcat_info(){
             fi
         fi
         echo "Process $OPID Tomcat LogDir:"$out_log
-        tail -n 5000 $out_log
+        tail -n 1000 $out_log
     done
 
 }
@@ -292,7 +287,7 @@ function get_os_jsondata(){
 function get_tomcat_jsondata(){
     
     init=0
-    PIDS=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap start"|awk '{ print $2}'`
+    PIDS=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"|awk '{ print $2}'`
     for OPID in $PIDS; do
         
         echo "{"
@@ -319,10 +314,14 @@ function get_tomcat_jsondata(){
 
         #获取tomcat版本信息
         if [ -n "$java_path" ]; then
-          tomcatbb=$($java_path -classpath "$tomcat_path/lib/catalina.jar" org.apache.catalina.util.ServerInfo | awk -F':' '/number/{print $2}'|tr -d " ")
+            tomcatbb=$($java_path -classpath "$tomcat_path/lib/catalina.jar" org.apache.catalina.util.ServerInfo | awk -F':' '/number/{print $2}'|tr -d " ")
         fi
-    
-        echo "\"tomcat_version\"":"\"$tomcatbb\""","
+
+        if [ -n "$tomcatbb" ]; then
+            echo "\"tomcat_version\"":"\"$tomcatbb\""","
+        else
+            echo "\"tomcat_version\"":"\"VersionHide\""","
+        fi
         
         # 获取tomcat启动用户
         run_user=`ps -ef|grep $OPID|grep -v grep|awk '{print $1}'`
@@ -435,25 +434,8 @@ function get_tomcat_jsondata(){
         # 版本安全检查
         if [ -n "$tomcatbb" ];then
             echo "\"version_check\"":"\"$tomcatbb\""","
-            tomcatbb_num=$(echo $tomcatbb|awk '{print substr($1,1,3)}')
-            ver_num=$(echo $tomcatbb|awk '{print substr($1,1,1)}')
-            num_a=`echo "$tomcatbb_num >= 8.5"|bc`
-            num_b=`echo "$tomcatbb_num <= 10"|bc`
-            num_c=`echo "$tomcatbb_num >= 5.0"|bc`
-            num_d=`echo "$tomcatbb_num <= 8.0"|bc`
-            # 判断版本在8.5到10之间为通过
-            if [[ $num_a -eq 1 && $num_b -eq 1 ]];then
-                echo "\"version_check_con\"":"\"Pass\""","
-            # 判断版本在5到8.0之间为不通过
-            elif [[ $num_c -eq 1 && $num_d -eq 1 ]];then
-                echo "\"version_check_con\"":"\"Failed\""","
-            # 判断版本在5以下视为设置了版本隐藏，为通过
-            elif [[ $ver_num -lt 5 ]];then
-                echo "\"version_check_con\"":"\"Pass\""","
-            fi
         else
-            echo "Process $OPID Tomcat Version Check Result:Version Hide"
-            echo "Process $OPID Tomcat Version Check Conclusion:Pass"
+            echo "\"version_check\"":"\"VersionHide\""","
         fi
 
         # 进程启动用户检查
@@ -463,100 +445,21 @@ function get_tomcat_jsondata(){
         else
             echo "\"runuser_check_con\"":"\"Pass\""","
         fi
-        
-        # 自带应用检查
-        echo "\"apps_check\"":"\"$app_name\""","
-
-        if [[ $app_name =~ "docs" || $app_name =~ "examples" || $app_name =~ "host-manager" ||$app_name =~ "manager" ]];then
-            echo "\"apps_check_con\"":"\"Failed\""","
-        else
-            echo "\"apps_check_con\"":"\"Pass\""","
-        fi
-        
-        # AJP端口检查
-        ajp_check=`cat $tempxml|grep "<Connector"|grep "AJP"|xargs`
-        if [[ -n $ajp_check ]];then
-            echo "\"ajp_check\"":"\"$ajp_check\""","
-            echo "\"ajp_check_con\"":"\"Failed\""","
-        else
-            echo "\"ajp_check\"":"\"No AJP\""","
-            echo "\"ajp_check_con\"":"\"Pass\""","
-        fi
-        
-        # AccessLog完备性检查
-        log_check=`cat $tempxml|grep "pattern="|xargs`
-        if [[ -n $log_check ]];then
-            echo "\"accesslog_check\"":"\"$log_check\""","
-            log_check1=`cat $tempxml|grep "User-Agent"`
-            log_check2=`cat $tempxml|grep "Referer"`
-            if [[ -z $log_check1 || -z $log_check2 ]];then
-                echo "\"accesslog_check_con\"":"\"Failed\""","
-            else
-                echo "\"accesslog_check_con\"":"\"Pass\""","
-            fi
-        else
-            echo "\"accesslog_check\"":"\"Null-未配置access日志\""","
-            echo "\"accesslog_check_con\"":"\"Failed\""","
-        fi
-
-        # 用户锁定检查
-        if [ -e $userxml ];then
-            user_check=`sed 's/<!--.*-->//g' $userxml|sed -n '/<!--/,/-->/!p'|grep "username="|xargs`
-            if [[ -n $user_check ]];then
-                echo "\"userxml_check\"":"\"$user_check\""","
-                echo "\"userxml_check_con\"":"\"Failed\""","
-            else
-                echo "\"userxml_check\"":"\"Null-未使用控制台用户\""","
-                echo "\"userxml_check_con\"":"\"Pass\""","
-            fi
-        else
-            echo "\"userxml_check\"":"\"Null-未使用控制台用户\""","
-            echo "\"userxml_check_con\"":"\"Pass\""","
-        fi
 
         # 禁止目录浏览检查
         list_check=`cat $webxml|grep -A1 ">listings<"|grep -v ">listings<"|awk -F ">" '{print $2}'|awk -F "<" '{print $1}'`
         if [[ -n $list_check ]];then
             echo "\"list_check\"":"\"$list_check\""","
             if [[ $list_check = "false" ]];then
-                echo "\"list_check_con\"":"\"Pass\""","
+                echo "\"list_check_con\"":"\"Pass\""
             else
-                echo "\"list_check_con\"":"\"Failed\""","
+                echo "\"list_check_con\"":"\"Failed\""
             fi
         else
             echo "\"list_check\"":"\"false\""","
-            echo "\"list_check_con\"":"\"Pass\""","
+            echo "\"list_check_con\"":"\"Pass\""
         fi
-        
-        # 文件上传漏洞防御检查
-        put_check=`cat $webxml|grep -A1 ">readonly<"|grep -v ">readonly<"|awk -F ">" '{print $2}'|awk -F "<" '{print $1}'`
-        if [[ -n $put_check ]];then
-            echo "\"fileput_check\"":"\"$put_check\""","
-            if [[ $put_check = "false" ]];then
-                echo "\"fileput_check_con\"":"\"Pass\""","
-            else
-                echo "\"fileput_check_con\"":"\"Failed\""","
-            fi
-        else
-            echo "\"fileput_check\"":"\"true\""","
-            echo "\"fileput_check_con\"":"\"Failed\""","
-        fi
-        
-        # DDOS防御
-        ddos_check=`cat $tempxml|grep connectionTimeout|xargs|awk -F " " '{for(i=1;i<=NF;i++){print $i}}'|awk '/connectionTimeout=/'`
-        if [[ -n $ddos_check ]];then
-            echo "\"timeout_check\"":"\"$ddos_check\""","
-            outnum=`echo $ddos_check|awk -F "=" '{print $2}'`
-            if [[ $outnum -ge 20000 ]];then
-                echo "\"timeout_check_con\"":"\"Pass\""
-            else
-                echo "\"timeout_check_con\"":"\"Failed\""
-            fi
-        else
-            echo "\"timeout_check\"":"\"connectionTimeout=20000\""","
-            echo "\"timeout_check_con\"":"\"Failed\""
-        fi
-        
+
         # 删除临时生成文件
         rm -f $tempxml
         
