@@ -1,12 +1,14 @@
 #!/bin/bash
-#version:1.0
+#version:1.2
 #monitor:weblogic/os
 #update: 根据需求，将整体脚本做了切割，以独立产品做数据采集
 #update-date:2022-06-01
 #update-date: 2023-02-09,修复bug：grep: -P supports only unibyte and UTF-8 locales 
 #update-date: 2023-02-09,修复bug：受管服务器上执行时，ipinfo地址获取为adminserver上的地址
 #update-date: 2023-02-14,修复bug，获取监听端口异常
-#update-data: 2023-02-28,修复bug，weblogic补丁版本获取
+#update-data: 2023-02-28,修复bug，weblogic补丁版本获取,需要完善
+#update-data: 2023-04-10,修复weblogic server path获取异常
+#update-data: 2023-04-10,新增boot.properties脚本判断
 
 #----------------------------------------OS层数据采集------------------------------------------------
 function collect_sys_info() {
@@ -176,8 +178,18 @@ function collect_sys_info() {
     echo ""
     echo "----->>>---->>>  disk mount "
     df -h
+    echo "----->>>---->>>  java process info  "
+    ps -ef | grep java | grep -v grep 
     echo "----->>>---->>>  weblogic process info  "
     ps -ef | grep java | grep -v grep | grep weblogic.Server
+    PID=$(ps -eo ruser,pid,args | grep "java" | grep weblogic.Server | grep -v grep | awk ' { print $2 }')
+    echo "----->>>---->>>  weblogic netstat info  "
+    for OPID in $PID; do
+        netstat -tnlop | grep -w $OPID | grep LISTEN
+        netstat -tnlop | grep -w $OPID | grep LISTEN | awk '{sub(".*:","",$4);print $4}'
+        
+    done
+
 
 }
 
@@ -215,7 +227,9 @@ function weblogic_info() {
         echo "{"
 
         echo "\"domain_dir\"":"\"$domain_dir\""","
-        weblogic_dir=$(ps -feww | grep -w $OPID | grep -v grep | grep -io "weblogic.home=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+        #weblogic_dir=$(ps -feww | grep -w $OPID | grep -v grep | grep -io "weblogic.home=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+        weblogic_dir=$(ps -feww | grep -w $OPID | grep -v grep | grep -io "java.security.policy=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+        weblogic_dir=${weblogic_dir%/lib*}
         echo "\"weblogic_dir\"":"\"$weblogic_dir\""","
 
         domain_name=${domain_dir##*/}
@@ -270,6 +284,8 @@ function weblogic_info() {
         #java_version=$($java_bin -version 2>&1 | sed '1!d' | sed s/\"//g)
         #echo "\"java_version\"":"\"$java_version\""","
 
+        #使用which命令查找java路径,这里主要是判断服务启动的时候使用openjdk，例如： java .... weblogic.Server,此时只有java这个值，需要获取当前java的真实路径
+        java_bin=$(which $java_bin)
         
         #判断是否openjdk或者oracle jdk
         if [ x$java_bin = x'/usr/bin/java' ];then
@@ -300,6 +316,7 @@ function weblogic_info() {
         case $wlsversion in
         "12.2.1.4.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                $OPATCHCOMMAND lsinv >> $filepath$filename2
                 weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -310,6 +327,7 @@ function weblogic_info() {
                 ;;
         "12.2.1.3.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                $OPATCHCOMMAND lsinv >> $filepath$filename2
                 weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -320,6 +338,7 @@ function weblogic_info() {
                 ;;
         "12.2.1.2.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                $OPATCHCOMMAND lsinv >> $filepath$filename2
                 weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -330,6 +349,7 @@ function weblogic_info() {
                 ;;
         "12.2.1.1.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                $OPATCHCOMMAND lsinv >> $filepath$filename2
                 weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -340,6 +360,7 @@ function weblogic_info() {
                 ;;
         "12.2.1.0.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                $OPATCHCOMMAND lsinv >> $filepath$filename2
                 weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -350,6 +371,7 @@ function weblogic_info() {
                 ;;
         "12.1.3.0.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
+                $OPATCHCOMMAND lsinv >> $filepath$filename2
                 weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -362,6 +384,7 @@ function weblogic_info() {
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
+                ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
                 weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -374,6 +397,7 @@ function weblogic_info() {
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
+                ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
                 weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -386,6 +410,7 @@ function weblogic_info() {
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
+                ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
                 weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -398,6 +423,7 @@ function weblogic_info() {
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
+                ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
                 weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
                 if [ -z "$weblogicpatchinfo" ];then
                     echo "\"domain_version\"":"\"$wlsversion\""","
@@ -541,14 +567,26 @@ function weblogic_info() {
 
         if [ x$adminServer == x$server_name ];
         then 
+            #判断启动脚本中是否存在-Dweblogic.management.username=和-Dweblogic.management.password=
+            inusername=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.management.username=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+            inpassword=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.management.password=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+
+            #判断是否存在boot.properties文件
+            if [ -f $domain_dir/servers/${server_name}/security/boot.properties ];then
+                username=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep username | awk -F 'username=' '{print $2}' | tr -d '\\')
+                password=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep password | awk -F 'password=' '{print $2}' | tr -d '\\') 
+            elif [ $inusername ]&&[ $inpassword ];then
+                username=$inusername
+                password=$inpassword
+            fi
+
             #weblogic监控数据获取
-            username=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep username | awk -F 'username=' '{print $2}' | tr -d '\\')
-            password=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep password | awk -F 'password=' '{print $2}' | tr -d '\\')
+            
             weblogicdir=${weblogic_dir%/*}
             wlstexec=$(find $weblogicdir -name wlst.sh | head -n 1)
             descryptusername=$($wlstexec /tmp/enmoResult/pyscript/passdecrypt.py  $domain_dir  $username| tail -n 1)
             descryptpassword=$($wlstexec /tmp/enmoResult/pyscript/passdecrypt.py  $domain_dir  $password| tail -n 1)
-            wlsmoninfo=$($wlstexec /tmp/enmoResult/pyscript/wlsdatacheck.py $ipinfo $server_port  $descryptusername $descryptpassword | egrep -i "^-|^ " )
+            wlsmoninfo=$($wlstexec /tmp/enmoResult/pyscript/wlsdatacheck.py $ipinfo $server_port  $descryptusername $descryptpassword $server_name | egrep -i "^-|^ " )
             echo "\"wlsmoninfo\"":"\"$wlsmoninfo\""
         fi
 
@@ -557,15 +595,35 @@ function weblogic_info() {
         then
             adminUrl=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.management.server=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
             #echo "\"adminURL\"":"\"$adminUrl\""","
-            username=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep username | awk -F 'username=' '{print $2}' | tr -d '\\')
-            password=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep password | awk -F 'password=' '{print $2}' | tr -d '\\')
+            
+            #判断启动脚本中是否存在-Dweblogic.management.username=和-Dweblogic.management.password=
+            inusername=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.management.username=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+            inpassword=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.management.password=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
+
+            #判断是否存在nodemanager
+            nodemanagerProcess=$(ps -ef|grep java|grep -v grep| grep weblogic.NodeManager| awk '{print $2}')
+
+            #用户名和密码配置到启动脚本中
+            if [ -f $domain_dir/servers/${server_name}/security/boot.properties ]; then 
+                username=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep username | awk -F 'username=' '{print $2}' | tr -d '\\')
+                password=$(cat $domain_dir/servers/${server_name}/security/boot.properties | grep password | awk -F 'password=' '{print $2}' | tr -d '\\')
+            elif [ $inusername ]&&[ $inpassword ];then
+                username=$inusername
+                password=$inpassword
+            elif [ $nodemanagerProcess ];then
+                bootpath=$(ps -feww |grep $OPID| grep -v grep | grep -io "weblogic.system.BootIdentityFile=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2 )
+                username=$(cat $bootpath | grep username | awk -F 'username=' '{print $2}' | tr -d '\\')
+                password=$(cat $bootpath | grep password | awk -F 'password=' '{print $2}' | tr -d '\\')            
+            fi
+
+           
             weblogicdir=${weblogic_dir%/*}
             wlstexec=$(find $weblogicdir -name wlst.sh | head -n 1)
             descryptusername=$($wlstexec /tmp/enmoResult/pyscript/passdecrypt.py  $domain_dir  $username| tail -n 1)
             descryptpassword=$($wlstexec /tmp/enmoResult/pyscript/passdecrypt.py  $domain_dir  $password| tail -n 1)
             adminipinfo=$(echo $adminUrl| awk -F ':' '{print $2}' | tr -d '\//')
             serverport=$(echo $adminUrl | awk -F ':' '{print $3}')
-            wlsmoninfo=$($wlstexec /tmp/enmoResult/pyscript/wlsdatacheck.py $adminipinfo $serverport  $descryptusername $descryptpassword | egrep -i "^-|^ " )
+            wlsmoninfo=$($wlstexec /tmp/enmoResult/pyscript/wlsdatacheck.py $adminipinfo $serverport  $descryptusername $descryptpassword $server_name | egrep -i "^-|^ " )
             echo "\"wlsmoninfo\"":"\"$wlsmoninfo\""
         fi
 
@@ -685,6 +743,7 @@ serverip=sys.argv[1]
 port=sys.argv[2] 
 username=sys.argv[3]
 password=sys.argv[4] 
+server_name=sys.argv[5]
 adminurl="t3://" + str(serverip) + ":" + str(port)
 
 
@@ -706,8 +765,6 @@ def getServerHealthStateByCodeNum(code):
 
 #获取server状态信息
 def getServerStatusInfo():
-    domainConfig()
-    servers=cmo.getServers()
     try:
         serveroutputbuffer=[]
         serveroutputbuffer.append("--"*40)
@@ -715,16 +772,14 @@ def getServerStatusInfo():
         serveroutputbuffer.append("--"*40)
         serveroutputbuffer.append (" %-30s%30s" %("Server NAME","STATUS"))
         serveroutputbuffer.append("--"*40)
-        for server in servers:
-            server_name=server.getName()
-            mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
-            if	mbean_server:
-                serverState=mbean_server.getState()
-                serveroutputbuffer.append(" %-30s%30s" %(server_name,serverState))
-            else :
-                unknowbean_server = getMBean('domainConfig:/Servers/' + server_name)    
-                serverState='SHUTDOWN'
-                serveroutputbuffer.append(" %-30s%30s" %(server_name,serverState))                
+        mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
+        if	mbean_server:
+            serverState=mbean_server.getState()
+            serveroutputbuffer.append(" %-30s%30s" %(server_name,serverState))
+        else :
+            unknowbean_server = getMBean('domainConfig:/Servers/' + server_name)    
+            serverState='SHUTDOWN'
+            serveroutputbuffer.append(" %-30s%30s" %(server_name,serverState))                
         serveroutputbuffer.append("--"*40)
         print '\n'.join(serveroutputbuffer)
         
@@ -733,8 +788,6 @@ def getServerStatusInfo():
 
 #获取jvm内存信息
 def getServerJVMInfo():
-    domainConfig()
-    servers=cmo.getServers()
     try:    
         heapoutputbuffer=[]
         heapoutputbuffer.append("--"*40)
@@ -742,16 +795,14 @@ def getServerJVMInfo():
         heapoutputbuffer.append("--"*40)
         heapoutputbuffer.append (" %-20s%20s%20s" %("Server NAME","heap区最大值","heap区空闲百分比"))
         heapoutputbuffer.append("--"*40)
-        for server in servers:
-            server_name=server.getName()
-            mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
-            if	mbean_server:
-                jvm_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name + '/JVMRuntime/' + server_name)
-                server_HeapFreeCurrent=jvm_server.getHeapFreeCurrent()
-                HeapFreePercent = jvm_server.getHeapFreePercent()
-                HeapSizeCurrent = jvm_server.getHeapSizeCurrent()
-                HeapSizeMax = jvm_server.getHeapSizeCurrent()/1024/1024
-                heapoutputbuffer.append(" %-20s%20s%20s" %(server_name,str(HeapSizeMax),str(HeapFreePercent)))        
+        mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
+        if	mbean_server:
+            jvm_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name + '/JVMRuntime/' + server_name)
+            server_HeapFreeCurrent=jvm_server.getHeapFreeCurrent()
+            HeapFreePercent = jvm_server.getHeapFreePercent()
+            HeapSizeCurrent = jvm_server.getHeapSizeCurrent()
+            HeapSizeMax = jvm_server.getHeapSizeCurrent()/1024/1024
+            heapoutputbuffer.append(" %-20s%20s%20s" %(server_name,str(HeapSizeMax),str(HeapFreePercent)))        
         heapoutputbuffer.append("--"*40)
         print '\n'.join(heapoutputbuffer) 
         
@@ -761,8 +812,6 @@ def getServerJVMInfo():
 
 #获取线程信息
 def getServerThreadInfo():
-    domainConfig()
-    servers=cmo.getServers()
     try:
         threadoutputbuffer=[]
         threadoutputbuffer.append("--"*40)
@@ -770,22 +819,20 @@ def getServerThreadInfo():
         threadoutputbuffer.append("--"*40)
         threadoutputbuffer.append (" %9s%9s%9s%9s%9s%9s" %("Server NAME","活动线程数","执行线程总数","空闲线程数","独占线程数","STATUS"))
         threadoutputbuffer.append("--"*40)
-        for server in servers:
-            server_name=server.getName()
-            mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
-            if	mbean_server:
-                
-                threadpool_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name + '/ThreadPoolRuntime/ThreadPoolRuntime')
-                StandbyThreadCount = threadpool_server.getStandbyThreadCount()
-                ExecuteThreadTotalCount = threadpool_server.getExecuteThreadTotalCount()
-                ExecuteThreadIdleCount = threadpool_server.getExecuteThreadIdleCount()
-                HoggingThreadCount = threadpool_server.getHoggingThreadCount()
-                ExecuteThreads = threadpool_server.getExecuteThreads()
-                activeThreadCount = ExecuteThreadTotalCount-StandbyThreadCount
-                QueueLength=threadpool_server.getQueueLength()
-                stuckThreadCount = 0
-                threadstate=threadpool_server.getHealthState().getState();
-                threadoutputbuffer.append(" %-12s%9s%12s%14s%14s%14s" %(server_name,str(activeThreadCount),str(ExecuteThreadTotalCount),str(ExecuteThreadIdleCount),str(HoggingThreadCount),getServerHealthStateByCodeNum(threadstate)))
+        mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
+        if	mbean_server:
+            
+            threadpool_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name + '/ThreadPoolRuntime/ThreadPoolRuntime')
+            StandbyThreadCount = threadpool_server.getStandbyThreadCount()
+            ExecuteThreadTotalCount = threadpool_server.getExecuteThreadTotalCount()
+            ExecuteThreadIdleCount = threadpool_server.getExecuteThreadIdleCount()
+            HoggingThreadCount = threadpool_server.getHoggingThreadCount()
+            ExecuteThreads = threadpool_server.getExecuteThreads()
+            activeThreadCount = ExecuteThreadTotalCount-StandbyThreadCount
+            QueueLength=threadpool_server.getQueueLength()
+            stuckThreadCount = 0
+            threadstate=threadpool_server.getHealthState().getState();
+            threadoutputbuffer.append(" %-12s%9s%12s%14s%14s%14s" %(server_name,str(activeThreadCount),str(ExecuteThreadTotalCount),str(ExecuteThreadIdleCount),str(HoggingThreadCount),getServerHealthStateByCodeNum(threadstate)))
         threadoutputbuffer.append("--"*40)
         print '\n'.join(threadoutputbuffer) 
 
@@ -793,8 +840,6 @@ def getServerThreadInfo():
 	    print('-> Exception occured!!!\n')      
 
 def getJdbcInfo():
-    domainConfig()
-    servers=cmo.getServers()
     jdbcsystemresources = cmo.getJDBCSystemResources()
     try:
         
@@ -805,23 +850,22 @@ def getJdbcInfo():
             jdbcoutputbuffer.append("--"*64)
             jdbcoutputbuffer.append (" %-9s%10s%12s%12s%8s%12s%12s%9s" %("JDBC名称","Server NAME","当前活动连接计数 ","最大活动连接计数 ","活动容量","最大当前容量计数","最大等待连接计数","STATUS"))
             jdbcoutputbuffer.append("--"*64)
-            for server in servers:
-                server_name=server.getName()
-                mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
-                if	mbean_server:
+            
+            mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
+            if	mbean_server:
 
-                    #获取jdbc连接池信息
-                    if len(jdbcsystemresources):
-                        for jdbcsysresource in jdbcsystemresources:
-                            jdbcdatasourceinfo = getMBean('domainRuntime:/ServerRuntimes/'+server.getName()+'/JDBCServiceRuntime/'+server.getName()+'/JDBCDataSourceRuntimeMBeans/' + jdbcsysresource.getName())
-                            if jdbcdatasourceinfo:
-                                activeConnectionsCurrentCount = jdbcdatasourceinfo.getActiveConnectionsCurrentCount()
-                                activeConnectionsHighCount = jdbcdatasourceinfo.getActiveConnectionsHighCount()
-                                currcapacity = jdbcdatasourceinfo.getCurrCapacity()
-                                CurrCapacityHighCount = jdbcdatasourceinfo.getCurrCapacityHighCount()
-                                WaitingForConnectionHighCount = jdbcdatasourceinfo.getWaitingForConnectionHighCount()
-                                jdbcstate = jdbcdatasourceinfo.getState()
-                                jdbcoutputbuffer.append (" %-12s%12s%16s%16s%16s%16s%16s%20s" %(jdbcsysresource.getName(),server_name,str(activeConnectionsCurrentCount),str(activeConnectionsHighCount),str(currcapacity),str(CurrCapacityHighCount),str(WaitingForConnectionHighCount),jdbcstate))
+                #获取jdbc连接池信息
+                if len(jdbcsystemresources):
+                    for jdbcsysresource in jdbcsystemresources:
+                        jdbcdatasourceinfo = getMBean('domainRuntime:/ServerRuntimes/'+server_name+'/JDBCServiceRuntime/'+server_name+'/JDBCDataSourceRuntimeMBeans/' + jdbcsysresource.getName())
+                        if jdbcdatasourceinfo:
+                            activeConnectionsCurrentCount = jdbcdatasourceinfo.getActiveConnectionsCurrentCount()
+                            activeConnectionsHighCount = jdbcdatasourceinfo.getActiveConnectionsHighCount()
+                            currcapacity = jdbcdatasourceinfo.getCurrCapacity()
+                            CurrCapacityHighCount = jdbcdatasourceinfo.getCurrCapacityHighCount()
+                            WaitingForConnectionHighCount = jdbcdatasourceinfo.getWaitingForConnectionHighCount()
+                            jdbcstate = jdbcdatasourceinfo.getState()
+                            jdbcoutputbuffer.append (" %-12s%12s%16s%16s%16s%16s%16s%20s" %(jdbcsysresource.getName(),server_name,str(activeConnectionsCurrentCount),str(activeConnectionsHighCount),str(currcapacity),str(CurrCapacityHighCount),str(WaitingForConnectionHighCount),jdbcstate))
             jdbcoutputbuffer.append("--"*64)
             print '\n'.join(jdbcoutputbuffer) 
 
@@ -831,7 +875,6 @@ def getJdbcInfo():
 
 
 def getApplicationInfo():
-    domainConfig()
     myapps=cmo.getAppDeployments()
     outputbuffer=[]
     outputbuffer.append("--"*40)
@@ -840,14 +883,12 @@ def getApplicationInfo():
     outputbuffer.append (" %-20s%15s%25s" %("APPLICATION NAME","TARGET","STATUS"))
     outputbuffer.append("--"*40)
     for app in myapps:
-        bean=getMBean('/AppDeployments/'+app.getName()+'/Targets/')
+        bean=getMBean('serverConfig:/AppDeployments/'+app.getName()+'/Targets/')
         targetsbean=bean.getTargets()
         for target in targetsbean:
-            domainRuntime()
-            cd('AppRuntimeStateRuntime/AppRuntimeStateRuntime')
-            appstatus=cmo.getCurrentState(app.getName(),target.getName())
+            appinfo=getMBean('domainRuntime:/AppRuntimeStateRuntime/AppRuntimeStateRuntime')
+            appstatus=appinfo.getCurrentState(app.getName(),target.getName())
             outputbuffer.append(" %-20s%15s%25s" %(app.getName(),target.getName(),appstatus))
-        serverConfig()
     outputbuffer.append("--"*40)
     print '\n'.join(outputbuffer)
 
@@ -858,6 +899,7 @@ if __name__ == "main":
     getServerThreadInfo()
     getJdbcInfo()
     getApplicationInfo()
+
 
 EOF
 }

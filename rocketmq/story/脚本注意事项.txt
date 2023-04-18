@@ -1,0 +1,12 @@
+在使用rocketmq脚本时
+rocketmq1.1版本中新增了对namesvr的判断，但是还是存在一个bug
+
+1、在启动broker服务的时候，设置环境变量NAMESRV_ADDR启动broker的时候，巡检脚本执行会因为找不到namesvr服务而退出
+
+export NAMESRV_ADDR=xxxxx:9876
+nohup sh mqbroker & 
+
+这样启动broker服务的话，运行脚本会报错。
+
+
+但是如果将NAMESRV_ADDR=xxxxx:9876这个变量添加到.profile,.bash_profile文件中，这样执行rocketmq1.1.sh这个脚本就没有问题
