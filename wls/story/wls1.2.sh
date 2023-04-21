@@ -312,128 +312,82 @@ function weblogic_info() {
         #weblogic12.1.3版本一下weblogic获取当前补丁命令
         #./bsu.sh -view -status=applied -prod_dir=/home/weblogic/wls1036/wlserver_10.3 -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1'
         wlsversion=`grep 'domain-version' $domain_dir/config/config.xml | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d'`
-        
+        echo "\"wlsversion\"":"\"$wlsversion\""","
+
+
         case $wlsversion in
         "12.2.1.4.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
                 $OPATCHCOMMAND lsinv >> $filepath$filename2
-                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g' | grep 'PATCH SET UPDATE')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         "12.2.1.3.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
                 $OPATCHCOMMAND lsinv >> $filepath$filename2
-                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi 
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g' | grep 'PATCH SET UPDATE')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         "12.2.1.2.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
                 $OPATCHCOMMAND lsinv >> $filepath$filename2
-                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g' | grep 'PATCH SET UPDATE' )
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         "12.2.1.1.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
                 $OPATCHCOMMAND lsinv >> $filepath$filename2
-                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi 
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g' | grep 'PATCH SET UPDATE' )
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         "12.2.1.0.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
                 $OPATCHCOMMAND lsinv >> $filepath$filename2
-                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi 
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g' | grep 'PATCH SET UPDATE')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         "12.1.3.0.0")
                 OPATCHCOMMAND=$weblogic_dir/../../OPatch/opatch
                 $OPATCHCOMMAND lsinv >> $filepath$filename2
-                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi
+                weblogicpatchinfo=$($OPATCHCOMMAND lsinv | grep 'Patch description' |grep -v 'One-off' | awk -F ':' '{print $NF}'  |  awk '$1=$1' |  sed 's/\"//g' | grep 'PATCH SET UPDATE' )
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         "12.1.2.0")
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
                 ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
-                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi                
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | grep 'PATCH SET UPDATE' | awk -F ':' '{print $NF}' | awk '$1=$1')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","               
                 ;;
         "12.1.1.0")
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
                 ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
-                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi               
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | grep 'PATCH SET UPDATE' | awk -F ':' '{print $NF}' | awk '$1=$1')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
+               
                 ;;
         "10.3.6.0")
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
                 ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
-                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | grep 'PATCH SET UPDATE' | awk -F ':' '{print $NF}' | awk '$1=$1')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
+
                 ;;
         "10.3.5.0")
                 BSUCOMMANDDIR=$weblogic_dir/../../utils/bsu/
                 cd $BSUCOMMANDDIR
                 weblogicdir=${weblogic_dir%/*}
                 ./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose >> $filepath$filename2
-                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | awk -F ':' '{print $NF}' | awk '$1=$1')
-                if [ -z "$weblogicpatchinfo" ];then
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                else    
-                    wlsversion=$weblogicpatchinfo
-                    echo "\"domain_version\"":"\"$wlsversion\""","
-                fi
+                weblogicpatchinfo=$(./bsu.sh -view -status=applied -prod_dir=$weblogicdir -verbose |grep Description | grep 'PATCH SET UPDATE' | awk -F ':' '{print $NF}' | awk '$1=$1')
+                echo "\"wlspatchinfo\"":"\"$weblogicpatchinfo\""","
                 ;;
         *)
-               echo "\"domain_version\"":"error"","
+               echo "\"wlspatchinfo\"":"\"$wlsversion\""","
         esac
 
 
