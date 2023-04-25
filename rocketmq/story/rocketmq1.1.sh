@@ -1,8 +1,8 @@
 #!/bin/bash
-#version:1.0
+#version:1.1
 #monitor:rocketmq/os
-#update: 根据需求，将整体脚本做了切割，以独立产品做数据采集
-#update-date:2022-06-6
+#update-date:更新获取rocketmq日志信息异常
+#uddate-date:添加相关判断，如果namesvr服务在broker启动的时候没有指定-n，并且没有在环境变量中取值，程序直接退出，输出信息：当前broker中没有配置namesvr服务
 
 #----------------------------------------OS层数据采集------------------------------------------------
 function collect_sys_info() {
@@ -230,7 +230,7 @@ function rocketmq_status_info(){
 
    
 
-    ### 是否需要使用for循环把所以的broker信息获取到？？？ 下午来调整
+    
     #判断 diff不为0，./mqadmin brokerConsumeStats -n 192.168.3.138:9876 -b 192.168.3.64:10911 | awk 'n==1{print} $0~/#Topic/{n=1}' | awk '(NR>=1) {if($7>0) print}'
     #rocketmqconsumerinfo=$($rocketmqbase/bin/mqadmin brokerConsumeStats -n $namesrvAddr -b $brokeraddress)
     #echo -e "$rocketmqconsumerinfo" >>  "$filepath""$filename2"
@@ -408,6 +408,18 @@ function rocketmq_inquiry_info() {
         if [ x$namesrvAddr = x ];then
             #get namesrvAddr from broker.conf 
             namesrvAddr=$(grep 'namesrvAddr' $rocketmqconfigfilepath | awk -F '=' '{print $2}')
+
+            #从配置文件及环境变量中去查找namesvr，如果两个都没有的话，输出当前broker启动没有使用namesrv服务
+            if [ -z "$namesrvAddr" ] ;then
+                namesrvAddr=$(env |grep NAMESRV_ADDR | awk -F '=' '{print $2}')
+                if [ -z "$namesrvAddr" ];then
+
+                    echo "current broker start without namesvr service;exit" >>  "$filepath""$filename2"
+                    echo "current broker start without namesvr service;exit"
+                    exit 0
+                fi                
+            fi
+
 
             #添加相关判断，如果namesvr服务在broker启动的时候没有指定-n，并且没有在环境变量中取值，程序直接退出，输出信息：当前broker中没有配置namesvr服务
 
