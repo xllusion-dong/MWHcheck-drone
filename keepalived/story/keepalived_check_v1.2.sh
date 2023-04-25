@@ -238,9 +238,9 @@ function keepalived_inquiry_info(){
     system_log="/var/log/messages"
     echo "###############Get Keepalived Log Info######################"
     if [ -f "$system_log" ];then
-        cat /var/log/messages |grep keepalived|tail -n 1000
+        cat /var/log/messages* |grep keepalived|tail -n 500
     else
-        cat /var/log/syslog |grep keepalived|tail -n 1000
+        cat /var/log/syslog* |grep keepalived|tail -n 500
     fi
     
 }
