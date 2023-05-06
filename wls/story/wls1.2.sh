@@ -1,14 +1,7 @@
 #!/bin/bash
 #version:1.2
 #monitor:weblogic/os
-#update: 根据需求，将整体脚本做了切割，以独立产品做数据采集
-#update-date:2022-06-01
-#update-date: 2023-02-09,修复bug：grep: -P supports only unibyte and UTF-8 locales 
-#update-date: 2023-02-09,修复bug：受管服务器上执行时，ipinfo地址获取为adminserver上的地址
-#update-date: 2023-02-14,修复bug，获取监听端口异常
-#update-data: 2023-02-28,修复bug，weblogic补丁版本获取,需要完善
-#update-data: 2023-04-10,修复weblogic server path获取异常
-#update-data: 2023-04-10,新增boot.properties脚本判断
+
 
 #----------------------------------------OS层数据采集------------------------------------------------
 function collect_sys_info() {
@@ -240,14 +233,54 @@ function weblogic_info() {
 
         #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | head -n 1 | awk '{print $4}' | awk -F ':' '{print $NF}')
         
-        #获取管理端口配置
-        adminportport=$(grep 'administration-port' $domain_dir/config/config.xml | grep -v administration-port-enabled | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d')
-        adminportport=$(echo $adminportport | sed 's/[ ][ ]*/|/g')
-        if [ -z "$adminportport" ];then
-            server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+        start_num=$(cat -n $domain_dir/config/config.xml | sed -n '/<ssl>/p' | awk '{print $1}')
+        end_num=$(cat -n $domain_dir/config/config.xml | sed -n '/<\/ssl>/p' | awk '{print $1}')
+        startarr=(${start_num//A/ })  
+        endarr=(${end_num//A/ })
+        declare -A sslport
+        for ((i=0;i<${#startarr[*]};i++)) 
+        do
+            listen_port=$(sed -n ' '${startarr[i]}','${endarr[i]}' 'p' ' $domain_dir/config/config.xml | LC_ALL=en_US.utf8 grep -oP '(?<=listen-port>)[^<]+')
+            sslport[$i]=$listen_port
+        done
+
+        adminportflag=$(grep 'administration-port-enabled' $domain_dir/config/config.xml |  awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d')
+        if [ "$adminportflag" = true ];then
+            adminportport=$(grep 'administration-port' $domain_dir/config/config.xml | grep -v administration-port-enabled | awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d')
+            adminportport=$(echo $adminportport | sed 's/[ ][ ]*/|/g')
+            if [ -z "$adminportport" ];then
+                adminportport=9002
+            fi   
+            if [ -n "$sslport" ];then
+                server_ports=$(netstat -tnlop | grep -w $OPID | grep LISTEN | grep -vE $adminportport  |  grep -Ev "$(printf '%s|' "${sslport[@]}" | sed 's/|$//')" |grep $ipinfo | awk '{sub(".*:","",$4);print $4
+}'  | uniq )
+            else
+                server_ports=$(netstat -tnlop | grep -w $OPID | grep LISTEN | grep -vE $adminportport  |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq )
+            fi
         else
-            server_port=$(netstat -tnlop | grep -w $OPID | grep LISTEN | grep -vE $adminportport |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq | head -n 1 )
+            if [ -n "$sslport" ];then
+                server_ports=$(netstat -tnlop | grep -w $OPID | grep LISTEN |grep $ipinfo | grep -Ev "$(printf '%s|' "${sslport[@]}" | sed 's/|$//')" | awk '{sub(".*:","",$4);print $4}'  | uniq )
+            else
+                server_ports=$(netstat -tnlop | grep -w $OPID | grep LISTEN |grep $ipinfo | awk '{sub(".*:","",$4);print $4}'  | uniq )
+            fi
         fi
+
+        server_port=""
+        for port in $server_ports
+        do
+            if [ $port -eq 7001 ];then
+                server_port=7001
+                break
+            fi
+            existflag=$(grep $port $domain_dir/config/config.xml )
+            if [ -z "$existflag" ];then
+            continue
+            else
+                server_port=$port
+            fi
+        done
+
+
 
         #server_port=$(netstat -tnlop | grep $OPID | grep tcp |grep $ipinfo | awk '{print $4}' | awk -F ':' '{print $NF}')
        
