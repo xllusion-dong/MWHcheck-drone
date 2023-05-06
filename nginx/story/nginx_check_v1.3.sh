@@ -1,6 +1,6 @@
 #!/bin/bash
 #version:1.3
-#updatetime 2023-04-14
+#updatetime 2023-04-12
 #each process data use alone table
 
 function collect_sys_info() {
@@ -465,7 +465,7 @@ function get_nginx_jsondata(){
             echo "\"errorpage_check_con\"":"\"Failed\""","
         fi
         
-        nginx_config=`cat "$nginx_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'|sed 's/\\\//g'`
+        nginx_config=`cat "$nginx_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'`
         echo "\"nginx_config\"":"\"$nginx_config\""
 
         # 删除缓存文件

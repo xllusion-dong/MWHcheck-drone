@@ -1,6 +1,6 @@
 #!/bin/bash
 #version:1.2
-#updatetime2023/04/17
+#updatetime20230417
 #each process data use alone table
 
 function collect_sys_info() {
@@ -238,9 +238,9 @@ function keepalived_inquiry_info(){
     system_log="/var/log/messages"
     echo "###############Get Keepalived Log Info######################"
     if [ -f "$system_log" ];then
-        cat /var/log/messages |grep keepalived|tail -n 1000
+        cat /var/log/messages* |grep keepalived|tail -n 500
     else
-        cat /var/log/syslog |grep keepalived|tail -n 1000
+        cat /var/log/syslog* |grep keepalived|tail -n 500
     fi
     
 }
@@ -377,10 +377,10 @@ collect_sys_info >> "$filepath""$filename1"
 filename2=$HOSTNAME"_"keepalived"_"$ipinfo"_"$qctime".txt"
 keepalived_inquiry_info >> "$filepath""$filename2"
 
-tar -zcf /tmp/enmoResult/"$HOSTNAME"_"keepalived"_"$ipinfo"_"$qctime".tar.gz --exclude=/tmp/enmoResult/*.tar.gz /tmp/enmoResult/* --format=ustar
-
 ###get json data
 get_jsondata
+
+tar -zcf /tmp/enmoResult/"$HOSTNAME"_"keepalived"_"$ipinfo"_"$qctime".tar.gz --exclude=/tmp/enmoResult/*.tar.gz /tmp/enmoResult/* --format=ustar
 
 echo -e "___________________"
 echo -e "Collection info Finished."

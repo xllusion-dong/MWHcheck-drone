@@ -1,6 +1,6 @@
 #!/bin/bash
 #version:v1.2
-#updatetime20230414
+#time20230414
 #each process data use alone table
 
 function collect_sys_info() {
@@ -327,7 +327,7 @@ function get_apache_jsondata(){
         httpd_bin=`ls -l /proc/$hpid/exe|awk '{print $(NF)}'`
 
         #获取apache编译信息
-        httpd_cinfo=`$httpd_bin -V|sed 's/\"//g'|sed 's/\\\//g'`
+        httpd_cinfo=`$httpd_bin -V|sed 's/\"//g'`
         echo "\"httpd_cinfo\"":"\"$httpd_cinfo\""","
 
         #获取apache安装目录
@@ -449,7 +449,7 @@ function get_apache_jsondata(){
         fi
         
         # 获取httpd配置内容
-        httpd_confinfo=`cat "$httpd_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'|sed 's/\\\//g'`
+        httpd_confinfo=`cat "$httpd_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'`
         echo "\"httpd_confinfo\"":"\"$httpd_confinfo\""
 
         # 删除缓存文件

@@ -190,7 +190,7 @@ function convert_unit() {
 
 # 检查服务器是否存在Tomcat进程
 echo "############################################################"
-tomcat_pid_member=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"|awk '{ print $2}'|wc -l`
+tomcat_pid_member=`ps -eo ruser,pid,args|grep java|grep -v grep|grep "org.apache.catalina.startup.Bootstrap"|awk '{print $2}'|wc -l`
 if [ ${tomcat_pid_member} == 0 ];then
     echo "There is no Tomcat process on the server!"
     exit 0
@@ -208,16 +208,13 @@ function tomcat_info(){
         tomcat_path=`ps -ef|grep $OPID|grep 'org.apache.catalina.startup.Bootstrap'|grep -v grep|awk -F '-Dcatalina.home=' '{print $2}'|awk '{print $1}'`
         sh $tomcat_path/bin/version.sh
 
-        echo "###############Process $OPID Tomcat Process Info###############"
-        ps -ef|grep $OPID|grep -v grep
-
         echo "#############View Process $OPID Tomcat ResourceUsage###########"
         top -bn1 -p $OPID
 
         echo "#########View Process $OPID Tomcat catalina.sh Info#########"
-        cat $tomcat_path/bin/catalina.sh
+        cat $tomcat_path/bin/catalina.sh|grep -v '^#'
         echo "#########View Process $OPID Tomcat startup.sh Info##########"
-        cat $tomcat_path/bin/startup.sh
+        cat $tomcat_path/bin/startup.sh|grep -v '^#'
         echo "#########View Process $OPID Tomcat server.xml Info##########"
         cat $tomcat_path/conf/server.xml
         echo "#########View Process $OPID Tomcat context.xml Info#########"
@@ -386,7 +383,7 @@ function get_tomcat_jsondata(){
         # 获取tomcat数据源信息
         row_num=`cat -n $tempxml|grep -v "UserDatabase"|grep "<Resource"|awk '{print $1}'`
         if [ -z "$row_num" ];then
-            echo "\"tomcat_jdbc\"":"\"Null-未配置数据源\""","
+            echo "\"tomcat_jdbc\"":"\"NO JDBC\""","
         else
             jdbc_array=()
             j=0
@@ -446,6 +443,16 @@ function get_tomcat_jsondata(){
             echo "\"runuser_check_con\"":"\"Pass\""","
         fi
 
+        # AJP端口检查
+        ajp_check=`cat $tempxml|grep "protocol=\"AJP"|sed 's/^[ \t]*//g'|sed 's/\"//g'`
+        if [[ -n $ajp_check ]];then
+            echo "\"ajp_check\"":"\"$ajp_check\""","
+            echo "\"ajp_check_con\"":"\"Failed\""","
+        else
+            echo "\"ajp_check\"":"\"NO AJP\""","
+            echo "\"ajp_check_con\"":"\"Pass\""","
+        fi
+
         # 禁止目录浏览检查
         list_check=`cat $webxml|grep -A1 ">listings<"|grep -v ">listings<"|awk -F ">" '{print $2}'|awk -F "<" '{print $1}'`
         if [[ -n $list_check ]];then
@@ -490,7 +497,7 @@ function get_jsondata(){
 }
 
 function get_tomcat_main(){
-####check /tmp/tmpcheck Is empty
+####check /tmp/enmoResult/tmpcheck Is empty
 tmpcheck_dir="/tmp/enmoResult/tmpcheck/"
 echo ""
 if [ "$(ls -A $tmpcheck_dir)" ];then
