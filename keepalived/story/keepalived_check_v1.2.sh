@@ -289,7 +289,7 @@ function get_keepalived_jsondata(){
         echo "{"
 
         ka_bin=`ls -l /proc/$kapid/exe|awk '{print $(NF)}'`
-        ka_info=`$ka_bin -v 2>&1`
+        ka_info=`$ka_bin -v 2>&1|sed 's/\"//g'|sed 's/\\\//g'`
         echo "\"ka_info\"":"\"$ka_info\""","
         
 		ka_user=`ps -ef|grep $kapid|grep -v grep|grep -v '.sh'|awk '$3==1{print $1}'`

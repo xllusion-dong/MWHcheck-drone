@@ -349,7 +349,7 @@ function get_nginx_jsondata(){
         echo "\"nginx_home\"":"\"$nginx_home\""","
 
         #获取nginx编译信息
-        nginx_info=`$nginx_bin -V 2>&1`
+        nginx_info=`$nginx_bin -V 2>&1|sed 's/\"//g'|sed 's/\\\//g'`
         echo "\"nginx_vinfo\"":"\"$nginx_info\""","        
 
         #获取nginx配置文件目录
@@ -392,13 +392,7 @@ function get_nginx_jsondata(){
             fi
         done
         
-        port=`cat $nginx_tp|grep "listen "|awk '{print $NF}'|tr -d ";"`
-        a=":"
-        if [[ "$port" =~ "$a" ]];then
-            listen_port=`echo "$port"|awk -F ":" '{print $NF}'`
-        else
-            listen_port="$port"
-        fi
+        listen_port=`cat $nginx_tp|grep "listen "|awk '{print $NF}'|awk -F ":" '{print $NF}'|tr -d ";"`
         echo "\"nginx_port\"":"\"$listen_port\""","
         
         # 安全基线检查
@@ -465,7 +459,7 @@ function get_nginx_jsondata(){
             echo "\"errorpage_check_con\"":"\"Failed\""","
         fi
         
-        nginx_config=`cat "$nginx_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'`
+        nginx_config=`cat "$nginx_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'|sed 's/\\\//g'`
         echo "\"nginx_config\"":"\"$nginx_config\""
 
         # 删除缓存文件

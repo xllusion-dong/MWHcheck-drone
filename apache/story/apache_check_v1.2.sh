@@ -242,15 +242,26 @@ function apache_inquiry_info(){
 
         apache_bin=`ls -l /proc/$pid/exe|awk '{print $(NF)}'`
         
-        apache_home=`$apache_bin -V|grep "HTTPD_ROOT"|awk -F '=' '{print $2}'|tr -d '"'`
-        apache_config=`$apache_bin -V |grep "SERVER_CONFIG_FILE"|awk -F '=' '{print $2}'| tr -d '"'`
+        apache_home=`echo $apache_bin|awk -F "/bin" '{print $1}'`
         apache_log=`$apache_bin -V |grep "DEFAULT_ERRORLOG"| awk -F '=' '{print $2}'| tr -d '"'`
 
+        apache_confile=`ps -ef|grep $pid|grep -v grep|grep -v '.sh'|awk '$3==1'|awk -F "-f" '{print $2}'|awk '{print $1}'`
+        if [ -n "$apache_confile" ];then
+		    if [[ $apache_confile =~ ^/.* ]];then
+                apache_config="$apache_confile"
+            else
+                apache_config="$apache_home/$apache_confile"
+            fi
+        else
+            apache_conf=`$httpd_bin -V|grep "SERVER_CONFIG_FILE"|awk -F '=' '{print $2}'| tr -d '"'`
+            apache_config="$apache_home/$apache_conf"
+        fi
+
         #将apache所有配置内容输出到apache_temp.xml文件
-        echo "######$apache_home/$apache_config Info:" > /tmp/enmoResult/tmpcheck/apache_temp.xml
+        echo "######$apache_config Info:" > /tmp/enmoResult/tmpcheck/apache_temp.xml
         apache_temp=/tmp/enmoResult/tmpcheck/apache_temp.xml
-        cat "$apache_home/$apache_config"|grep -vE '^#|^\s*#|^$' >> $apache_temp  2>/dev/null
-        includes=`cat "$apache_home/$apache_config"|grep -v '#'|grep -i "include "`
+        cat "$apache_config"|grep -vE '^#|^\s*#|^$' >> $apache_temp  2>/dev/null
+        includes=`cat "$apache_config"|grep -vE '^#|^\s*#|^$'|grep -i "include "`
         for include in $includes
         do
             if echo "$include"|grep -q -E '\.conf$'; then
@@ -327,11 +338,11 @@ function get_apache_jsondata(){
         httpd_bin=`ls -l /proc/$hpid/exe|awk '{print $(NF)}'`
 
         #获取apache编译信息
-        httpd_cinfo=`$httpd_bin -V|sed 's/\"//g'`
+        httpd_cinfo=`$httpd_bin -V|sed 's/\"//g'|sed 's/\\\//g'`
         echo "\"httpd_cinfo\"":"\"$httpd_cinfo\""","
 
         #获取apache安装目录
-        httpd_home=`$httpd_bin -V|grep "HTTPD_ROOT"|awk -F '=' '{print $2}'|tr -d '"'`
+        httpd_home=`echo $httpd_bin|awk -F "/bin" '{print $1}'`
         echo "\"httpd_home\"":"\"$httpd_home\""","
 
         #获取apache启动用户
@@ -384,13 +395,7 @@ function get_apache_jsondata(){
         done
 
         # 获取httpd监听端口
-        httpd_listen=`cat $httpd_tp|grep -i "Listen "`
-        a=":"
-        if [[ "$httpd_listen" =~ "$a" ]];then
-            httpd_port=`echo $httpd_listen|awk -F ":" '{print $NF}'`
-        else
-            httpd_port="$httpd_listen"
-        fi
+        httpd_port=`cat $httpd_tp|grep -i "Listen "|awk '{print $NF}'|awk -F ":" '{print $NF}'`
         echo "\"httpd_port\"":"\"$httpd_port\""","
 
         # 安全基线检查
@@ -449,7 +454,7 @@ function get_apache_jsondata(){
         fi
         
         # 获取httpd配置内容
-        httpd_confinfo=`cat "$httpd_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'`
+        httpd_confinfo=`cat "$httpd_conf"|grep -vE '^#|^\s*#|^$'|sed 's/\"//g'|sed 's/\\\//g'`
         echo "\"httpd_confinfo\"":"\"$httpd_confinfo\""
 
         # 删除缓存文件
