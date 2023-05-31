@@ -1,5 +1,5 @@
 #!/bin/bash
-#version:1.1
+#version:1.2
 #monitor:zookeeper/os
 #update: 根据需求，将整体脚本做了切割，以独立产品做数据采集，调整os的采集文本
 #update：security baseline
@@ -7,6 +7,8 @@
 #update：按照中汇要求，变更安全部分
 #update-date:2023-02-8
 #update：修改因zoo.cfg为非默认路径导致的，数据获取紊乱
+#update-date:2023-05-5
+#update：去除部分不用zkcli.sh数据获取命令行
 
 
 #----------------------------------------OS层数据采集------------------------------------------------
@@ -245,11 +247,10 @@ function zookeeper_inquiry_info() {
 
             echo "通过zoo.cfg获取当前zookeeper的port信息"
             zookeeper_port=$(cat $zk_config_cfg | grep clientPort= | awk -F "=" '{print $2}')
-            echo "通过zkCli.sh获取信息"
-
-            echo ls / | sh bin/zkCli.sh -server $ip:$zookeeper_port | grep -A 20 WATCHER
-            echo config -s | sh bin/zkCli.sh -server $ip:$zookeeper_port | grep -A 20 WATCHER
-            echo version | sh bin/zkCli.sh -server $ip:$zookeeper_port | grep -A 20 WATCHER
+            #echo "通过zkCli.sh获取信息"
+            #echo ls / | sh bin/zkCli.sh -server $ip:$zookeeper_port | grep -A 20 WATCHER
+            #echo config -s | sh bin/zkCli.sh -server $ip:$zookeeper_port | grep -A 20 WATCHER
+            #echo version | sh bin/zkCli.sh -server $ip:$zookeeper_port | grep -A 20 WATCHER
             if [ $check_nc -eq 0 ]; then
                 echo "Zookeeper无法执行四字命令，缺少nc组件！！！"
             else
@@ -594,7 +595,7 @@ function get_zookeeper_data() {
     #echo "=====================Zookeeper基础信息=====================" >> $new_document
     Zookeeper_version=$(cat $file1 | grep "Apache ZooKeeper") && echo "\"Zookeeper_version\"":"\"$Zookeeper_version\"""," >>$new_document
     Zookeeper_mode=$(cat $file1 | grep "Mode" | head -n1 | awk -F ":" '{print $2}') && echo "\"Zookeeper_mode\"":"\"$Zookeeper_mode\"""," >>$new_document
-    Installation_path=$(cat $file1 | grep zookeeper|awk -F "(-cp)" '{print $2}'|grep -v '^$'| sed 's/^[ \t]*//g'|awk -F "bin" '{print $1}') && echo "\"Installation_path\"":"\"$Installation_path\"""," >>$new_document
+    Installation_path=$(cat $file1 | grep zookeeper|awk -F "(-cp)" '{print $2}'|grep -v '^$'| sed 's/^[ \t]*//g'|awk -F "/bin" '{print $1}') && echo "\"Installation_path\"":"\"$Installation_path\"""," >>$new_document
     #Start_User=`cat $file1  |grep -A1 "当前服务器zookeeper进程信息!" |grep -v "当前服务器zookeeper进程信息!"|awk -F " " '{print $1}'` && echo "\"Start_User\"":"\"$Start_User\"""," >> $new_document
     JVM_Instal_path=$(cat $file1 | grep -A1 "当前服务器zookeeper进程信息" | grep -v "当前服务器zookeeper进程信息" | grep -v grep | awk -F " " '{print $8}') && echo "\"JVM_Instal_path\"":"\"$JVM_Instal_path\"""," >>$new_document
     JVM_run_parameters=$(cat $file1 | egrep -io 'Xmx.*|Xms.*' | awk -F "-Djava" '{print $1}') && echo "\"JVM_run_parameters\"":"\"$JVM_run_parameters\"""," >>$new_document
