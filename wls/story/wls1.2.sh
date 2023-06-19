@@ -588,7 +588,8 @@ function weblogic_info() {
             inpassword=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.management.password=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
 
             #判断是否存在nodemanager
-            nodemanagerProcess=$(ps -ef|grep java|grep -v grep| grep weblogic.NodeManager| awk '{print $2}')
+            #nodemanagerProcess=$(ps -ef|grep java|grep -v grep| grep weblogic.NodeManager| awk '{print $2}')
+            nodemanagerProcess=$(ps -feww | grep $OPID | grep -v grep | grep -io "weblogic.nodemanager.ServiceEnabled=.*" | awk '{FS=" "; print $1}' | cut -d "=" -f2)
 
             #用户名和密码配置到启动脚本中
             if [ -f $domain_dir/servers/${server_name}/security/boot.properties ]; then 
@@ -780,7 +781,7 @@ def getServerJVMInfo():
         heapoutputbuffer.append("--"*40)
         heapoutputbuffer.append(" \t\t\tServer Heap Info\t\t")
         heapoutputbuffer.append("--"*40)
-        heapoutputbuffer.append (" %-20s%20s%20s" %("Server NAME","heap区最大值","heap区空闲百分比"))
+        heapoutputbuffer.append (" %-20s%20s%20s" %("Server NAME","heap Max Size","heap free percent"))
         heapoutputbuffer.append("--"*40)
         mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
         if	mbean_server:
@@ -804,7 +805,7 @@ def getServerThreadInfo():
         threadoutputbuffer.append("--"*40)
         threadoutputbuffer.append(" \t\t\tServer Thread Info\t\t")
         threadoutputbuffer.append("--"*40)
-        threadoutputbuffer.append (" %9s%9s%9s%9s%9s%9s" %("Server NAME","活动线程数","执行线程总数","空闲线程数","独占线程数","STATUS"))
+        threadoutputbuffer.append (" %9s%9s%9s%9s%9s%9s" %("Server NAME","active thread","total count","idle count","hogging count","STATUS"))
         threadoutputbuffer.append("--"*40)
         mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
         if	mbean_server:
@@ -835,7 +836,7 @@ def getJdbcInfo():
             jdbcoutputbuffer.append("--"*64)
             jdbcoutputbuffer.append(" \t\t\tServer JDBC Info\t\t")
             jdbcoutputbuffer.append("--"*64)
-            jdbcoutputbuffer.append (" %-9s%10s%12s%12s%8s%12s%12s%9s" %("JDBC名称","Server NAME","当前活动连接计数 ","最大活动连接计数 ","活动容量","最大当前容量计数","最大等待连接计数","STATUS"))
+            jdbcoutputbuffer.append (" %-9s%10s%12s%12s%8s%12s%12s%9s" %("JDBC Name","Server NAME","activeConnectionsCurrentCount ","activeConnectionsHighCount ","currcapacity","CurrCapacityHighCount","WaitingForConnectionHighCount","STATUS"))
             jdbcoutputbuffer.append("--"*64)
             
             mbean_server = getMBean('domainRuntime:/ServerRuntimes/' + server_name)
