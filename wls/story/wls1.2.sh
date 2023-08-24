@@ -701,7 +701,7 @@ function get_weblogic_main() {
     #weblogic_info >> "$filepath""$filename2"
     mwcheckr_result_jsondata
     #tar -czvf /tmp/enmoResult/"$HOSTNAME"_"$ipinfo"_"$qctime".tar.gz /tmp/enmoResult
-    tar -czf /tmp/enmoResult/"$HOSTNAME"_"$ipinfo"_"$qctime".tar.gz --exclude=/tmp/enmoResult/*.tar.gz --format=ustar /tmp/enmoResult/*
+    tar -czf /tmp/enmoResult/"$HOSTNAME"_"wls"_"$ipinfo"_"$qctime".tar.gz --exclude=/tmp/enmoResult/*.tar.gz --format=ustar /tmp/enmoResult/*
 
     echo -e "___________________"
     echo -e "Collection info Finished."
