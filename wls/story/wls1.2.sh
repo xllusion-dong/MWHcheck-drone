@@ -241,7 +241,14 @@ function weblogic_info() {
         for ((i=0;i<${#startarr[*]};i++)) 
         do
             listen_port=$(sed -n ' '${startarr[i]}','${endarr[i]}' 'p' ' $domain_dir/config/config.xml | LC_ALL=en_US.utf8 grep -oP '(?<=listen-port>)[^<]+')
-            sslport[$i]=$listen_port
+            if [ -n "$listen_port" ];
+            then
+                listenssport=$(netstat -na|grep $listen_port)
+                if [ -n "$listenssport" ];
+                then
+                    sslport[$i]=$listen_port
+                fi
+            fi
         done
 
         adminportflag=$(grep 'administration-port-enabled' $domain_dir/config/config.xml |  awk 'BEGIN{FS=">";RS="</"}{print $NF}' | sed '/^\(\s\)*$/d')
