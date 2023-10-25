@@ -355,7 +355,8 @@ function rocketmq_inquiry_info() {
     else
            
         if [ $rocketmq_pid_member -gt 0 ]; then
-            for line in $(ps -ef | grep java | grep org.apache.rocketmq.broker.BrokerStartup | grep -v grep | awk -F " " '{print $2}'); do
+            for line in $(ps -ef | grep java | grep org.apache.rocketmq.broker.BrokerStartup | grep -v grep | awk -F " " '{print $2}'); 
+            do
                 get_broker_jsondata $line $rocketmq_pid_member
             done
         fi
@@ -472,6 +473,7 @@ function get_broker5_jsondata(){
 
     #jdk安装路径
     javapath=$(ps -ef|grep $line|grep -v grep | awk '{print $8}')
+    javapath=$(which $javapath)
     #判断是否openjdk或者oracle jdk
     if [ x$javapath = x'/usr/bin/java' ];then
         javarealpath=$(ls -lt /usr/bin/java  | awk '{print $NF}')

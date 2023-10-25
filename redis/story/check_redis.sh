@@ -243,7 +243,7 @@ function redis_inquiry_info_passwd(){
     redis_cluster_pid_member=`ps -ef | grep redis-server | grep cluster | grep -v grep | grep -v sentinel | awk '{print $2}'| wc -l`
     #当前Redis服务启动用户"
     echo "start_User: $start_User"    
-    if [ $redis_cluster_pid_member == 0 ];then
+    if [ ${#passwd} -ne 0 ];then
        echo "----->>>---->>>  config_message "
        echo "config get *" | $excredis -a $passwd -h $ipinfo -p $port  2> /dev/null
 
@@ -308,7 +308,7 @@ function redis_inquiry_info_nopasswd(){
     redis_cluster_pid_member=`ps -ef | grep redis-server | grep cluster | grep -v grep | grep -v sentinel | awk '{print $2}'| wc -l`
     #当前Redis服务启动用户"
     echo "start_User: $start_User"
-    if [ $redis_cluster_pid_member == 0 ];then
+    if [ ${#passwd} -ne 0 ];then
        echo "----->>>---->>>  config_message "
        echo "config get *" | $excredis -h $ipinfo -p $port  2> /dev/null
 
@@ -367,9 +367,9 @@ function redis_inquiry_info_nopasswd(){
 
 #----------------------------------------redis info-JSON------------------------------------------------
 function get_redis_info_json(){
-    redisfiles=`ls $filepath | grep -v 'os'`
+    redisfiles=`ls $filepath | grep -v 'os_'`
     init=0
-    checkfile_number=`ls $filepath | grep -v 'os'|wc -l`
+    checkfile_number=`ls $filepath | grep -v 'os_'|wc -l`
     for checkfile in $redisfiles 
     do	
 	echo "{"

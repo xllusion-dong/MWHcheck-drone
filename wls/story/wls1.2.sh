@@ -333,7 +333,7 @@ function weblogic_info() {
             javarealpath=$(ls -lt $javarealpath | awk '{print $NF}' | awk -F "/jre" '{print $1}')
             echo "\"javapath\"":"\"$javarealpath\""","
 
-            javaversion=$($javapath -version 2>&1 |awk 'NR==1 {gsub(/"/,""); print $3}')
+            javaversion=$($java_bin -version 2>&1 |awk 'NR==1 {gsub(/"/,""); print $3}')
             echo "\"javaversion\"":"\"$javaversion\""","
             
         else 
