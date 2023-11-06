@@ -194,7 +194,7 @@ function get_jar_main() {
             javarealpath=$(ls -lt /usr/bin/java  | awk '{print $NF}')
             javarealpath=$(ls -lt $javarealpath | awk '{print $NF}' | awk -F "/jre" '{print $1}')
             echo "\"javapath\"":"\"$javarealpath\""","
-            javaversion=$($javapath -version 2>&1 |awk 'NR==1 {gsub(/"/,""); print $3}')
+            javaversion=$($java_bin -version 2>&1 |awk 'NR==1 {gsub(/"/,""); print $3}')
             echo "\"javaversion\"":"\"$javaversion\""","
             
         else 
